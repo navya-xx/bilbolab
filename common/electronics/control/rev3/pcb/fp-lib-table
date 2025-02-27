@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name "descriptors")(type "KiCad")(uri "${USER}/logos/descriptors.pretty")(options "")(descr ""))
+  (lib (name "Connectors_Wuerth_user")(type "KiCad")(uri "${USER}/footprints/connectors/Wurth/Connectors_Wuerth_user.pretty")(options "")(descr ""))
+)
