@@ -3,7 +3,7 @@ __pycache__
 .idea
 workspace.xml
 *.launch
-
+*.egg-info/
 node_modules/
 package-lock.json
 Debug/
