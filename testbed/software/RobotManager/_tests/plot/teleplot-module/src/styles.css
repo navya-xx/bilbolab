@@ -1,0 +1,50 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Adjusted react-grid-layout resize handle: positioned inside the container */
+.react-resizable-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  bottom: 2px;
+  right: 10px !important;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: se-resize;
+  border-radius: 3px;
+}
+
+/* Button styling */
+button {
+  font-family: inherit;
+  padding: 4px 8px;
+  border: none;
+  background: #1976d2;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover {
+  background: #1565c0;
+}
+button.close-button {
+  background: #e53935;
+  margin-left: 5px;
+}
+button.close-button:hover {
+  background: #d32f2f;
+}
+button.add-button {
+  font-size: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  line-height: 1;
+  padding: 0;
+}
+
+/* uPlot thicker line override */
+.uplot .uplot-series path {
+  stroke-width: 2px !important;
+}

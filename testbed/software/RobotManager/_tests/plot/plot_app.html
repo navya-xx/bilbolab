@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Teleplot-like Webapp</title>
+  <link rel="stylesheet" href="https://unpkg.com/uplot/dist/uPlot.min.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #container { position: relative; width: 100vw; height: 100vh; background: #f0f0f0; overflow: auto; }
+    .plot-window { position: absolute; border: 1px solid #aaa; background: white; padding: 5px; box-sizing: border-box; }
+    .plot-header { background: #ddd; cursor: move; padding: 3px; }
+    .plot-content { width: 100%; height: calc(100% - 80px); }
+    .config-panel { margin-bottom: 5px; font-size: 0.9em; }
+    .config-panel label { display: block; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+<div id="container">
+  <button id="addPlotBtn" style="position: fixed; top: 10px; left: 10px; z-index: 1000;">Add Plot Window</button>
+</div>
+
+<!-- uPlot and interact.js from CDN -->
+<script src="https://unpkg.com/uplot/dist/uPlot.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script>
+  /***********************
+   * Global Data Storage *
+   ***********************/
+  // Global data structure holds the timestamps and per-key data arrays.
+  const globalData = {
+    timestamps: [],  // Array of epoch seconds
+    keys: {}         // { key1: [value, value, ...], key2: [ ... ] }
+  };
+
+  // A Set of keys that have been seen on the data stream.
+  const availableKeys = new Set();
+
+  // Array to hold our plot window objects.
+  const plotWindows = [];
+
+  /***********************
+   * WebSocket Handler   *
+   ***********************/
+  const ws = new WebSocket("ws://localhost:8080");
+  ws.onmessage = function(event) {
+    const dataObj = JSON.parse(event.data);
+    const now = Date.now() / 1000; // seconds timestamp
+    globalData.timestamps.push(now);
+
+    // For each key in the incoming message, append the value.
+    for (const key in dataObj) {
+      if (!globalData.keys[key]) {
+        // If this key is new, backfill with nulls for previous timestamps.
+        globalData.keys[key] = new Array(globalData.timestamps.length - 1).fill(null);
+        availableKeys.add(key);
+        updateAllPlotConfigDropdowns();
+      }
+      globalData.keys[key].push(dataObj[key]);
+    }
+    // For keys that were not in this message, append the previous value (or null).
+    for (const key in globalData.keys) {
+      if (!(key in dataObj)) {
+        const arr = globalData.keys[key];
+        const lastValue = arr.length > 0 ? arr[arr.length - 1] : null;
+        arr.push(lastValue);
+      }
+    }
+
+    // Update all plot windows with the new data.
+    updateAllPlots();
+  };
+
+  /***********************
+   * Plot Update Helpers *
+   ***********************/
+  // Refresh the key dropdowns in every plot window so that new keys appear.
+  function updateAllPlotConfigDropdowns() {
+    plotWindows.forEach(pw => {
+      const select = pw.config.select;
+      // Preserve current selection
+      const current = Array.from(select.selectedOptions).map(opt => opt.value);
+      select.innerHTML = "";
+      availableKeys.forEach(key => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.text = key;
+        if (current.includes(key)) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      });
+    });
+  }
+
+  // Loop through all plot windows and update their charts.
+  function updateAllPlots() {
+    plotWindows.forEach(pw => {
+      updatePlotWindow(pw);
+    });
+  }
+
+  // Update a single plot window.
+  function updatePlotWindow(pw) {
+    const now = Date.now() / 1000;
+    // Use the time window (in seconds) from the config – default to 30 sec.
+    const windowSec = parseFloat(pw.config.timeWindowInput.value) || 30;
+    const startTime = now - windowSec;
+    // Determine the starting index for the time window.
+    let startIdx = 0;
+    while (startIdx < globalData.timestamps.length && globalData.timestamps[startIdx] < startTime) {
+      startIdx++;
+    }
+    const xData = globalData.timestamps.slice(startIdx);
+
+    // Get the keys that this plot is configured to display.
+    const selectedKeys = Array.from(pw.config.select.selectedOptions).map(opt => opt.value);
+    // Build the data array for uPlot: first element is xData, then one array per key.
+    const seriesData = [xData];
+    const seriesColors = [];
+    selectedKeys.forEach(key => {
+      const yData = globalData.keys[key] ? globalData.keys[key].slice(startIdx) : [];
+      seriesData.push(yData);
+      // Get the color from the color picker (or generate a random color if not set)
+      const color = pw.config.colorInputs[key] ? pw.config.colorInputs[key].value : "#"+((1<<24)*Math.random()|0).toString(16);
+      seriesColors.push(color);
+    });
+
+    // Build uPlot options.
+    const opts = {
+      title: "Plot",
+      width: pw.plotContainer.clientWidth,
+      height: pw.plotContainer.clientHeight,
+      scales: { x: { time: true } },
+      series: [
+        { label: "Time" }
+      ]
+    };
+
+    // For each selected key, add a series with its label and stroke color.
+    selectedKeys.forEach((key, i) => {
+      opts.series.push({
+        label: key,
+        stroke: seriesColors[i],
+        width: 2,
+      });
+    });
+
+    // If this window doesn’t have a uPlot instance yet, create one.
+    if (!pw.uplot) {
+      pw.uplot = new uPlot(opts, seriesData, pw.plotContainer);
+    } else {
+      pw.uplot.setData(seriesData);
+      // (Optionally, update options on resize/config change.)
+    }
+  }
+
+  /***********************
+   * Create Plot Window  *
+   ***********************/
+  function addPlotWindow() {
+    const container = document.getElementById("container");
+    const pwDiv = document.createElement("div");
+    pwDiv.className = "plot-window";
+    pwDiv.style.width = "400px";
+    pwDiv.style.height = "300px";
+    pwDiv.style.left = "50px";
+    pwDiv.style.top = "50px";
+
+    // Header (for dragging)
+    const header = document.createElement("div");
+    header.className = "plot-header";
+    header.textContent = "Plot Window";
+    pwDiv.appendChild(header);
+
+    // Config panel for time window, key selection, and color pickers.
+    const configPanel = document.createElement("div");
+    configPanel.className = "config-panel";
+    configPanel.innerHTML = `
+      <label>
+        Time Window (sec):
+        <input type="number" value="30" style="width:50px;">
+      </label>
+      <label>
+        Keys:
+        <select multiple size="3" style="width:100px;"></select>
+      </label>
+      <div class="colors"></div>
+    `;
+    pwDiv.appendChild(configPanel);
+
+    // Container for the uPlot chart.
+    const plotContainer = document.createElement("div");
+    plotContainer.className = "plot-content";
+    pwDiv.appendChild(plotContainer);
+
+    container.appendChild(pwDiv);
+
+    // Create a config object for this plot window.
+    const config = {
+      timeWindowInput: configPanel.querySelector("input[type=number]"),
+      select: configPanel.querySelector("select"),
+      colorsDiv: configPanel.querySelector(".colors"),
+      colorInputs: {}  // Maps key -> associated color input element.
+    };
+
+    // When the key selection changes, rebuild the color picker elements.
+    config.select.addEventListener("change", function() {
+      config.colorsDiv.innerHTML = "";
+      config.colorInputs = {};
+      Array.from(config.select.selectedOptions).forEach(opt => {
+        const key = opt.value;
+        const label = document.createElement("label");
+        label.textContent = key + " Color: ";
+        const colorInput = document.createElement("input");
+        colorInput.type = "color";
+        // Initialize with a random color.
+        colorInput.value = "#"+((1<<24)*Math.random()|0).toString(16);
+        config.colorInputs[key] = colorInput;
+        label.appendChild(colorInput);
+        config.colorsDiv.appendChild(label);
+      });
+      updatePlotWindow(pwObj);
+    });
+
+    // Update the plot when the time window is changed.
+    config.timeWindowInput.addEventListener("change", function() {
+      updatePlotWindow(pwObj);
+    });
+
+    // Create an object to represent this plot window.
+    const pwObj = {
+      container: pwDiv,
+      plotContainer: plotContainer,
+      config: config,
+      uplot: null,
+    };
+
+    plotWindows.push(pwObj);
+    updateAllPlotConfigDropdowns();
+
+    // Make the window draggable and resizable with interact.js.
+    interact(pwDiv)
+      .draggable({
+        allowFrom: '.plot-header',
+        listeners: {
+          move (event) {
+            const target = event.target;
+            const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+            const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+            target.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+          }
+        }
+      })
+      .resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        listeners: {
+          move (event) {
+            let { x, y } = event.target.dataset;
+            x = parseFloat(x) || 0;
+            y = parseFloat(y) || 0;
+            // Update size
+            event.target.style.width = event.rect.width + 'px';
+            event.target.style.height = event.rect.height + 'px';
+            // Translate when resizing from top or left edges.
+            x += event.deltaRect.left;
+            y += event.deltaRect.top;
+            event.target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+            event.target.dataset.x = x;
+            event.target.dataset.y = y;
+            // Resize the uPlot instance if it exists.
+            if (pwObj.uplot) {
+              pwObj.uplot.setSize({
+                width: pwObj.plotContainer.clientWidth,
+                height: pwObj.plotContainer.clientHeight
+              });
+            }
+          }
+        }
+      });
+  }
+
+  // Attach the addPlotWindow function to the button.
+  document.getElementById("addPlotBtn").addEventListener("click", addPlotWindow);
+</script>
+</body>
+</html>
