@@ -101,7 +101,7 @@ class FRODO_CommandSet(CommandSet):
                                                          description='Number of iterations to test')
                                      ])
 
-        utils_command_set = CommandSet(name='utils', commands=[test_communication])
+        utils_command_set = CommandSet(name='utilities', commands=[test_communication])
 
         super(FRODO_CommandSet, self).__init__(name=frodo.id,
                                                child_sets=[utils_command_set],

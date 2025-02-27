@@ -333,7 +333,7 @@ class Group(PlottableElement):
 
 class FRODO_Web_Interface:
     server: SyncWebsocketServer
-    html_file_path: str = "./frodo_web_gui_new.html.html"
+    html_file_path: str = "frodo_web_gui_new.html"
     _thread: threading.Thread
     _exit: bool = False
     videos: dict

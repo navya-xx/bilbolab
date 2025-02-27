@@ -18,14 +18,14 @@ from robots.frodo.utils.frodo_cli import FRODO_CommandSet
 from robots.frodo.utils.frodo_manager_cli import FrodoManager_Commands
 from utils.callbacks import Callback
 from utils.exit import ExitHandler
-from applications.FRODO.utils.web_gui.FRODO_Web_Interface import FRODO_Web_Interface, Group
+from applications.FRODO.utilities.web_gui.FRODO_Web_Interface import FRODO_Web_Interface, Group
 from utils.sound.sound import playSound, SoundSystem
 from utils.sound.sound import speak
 from utils.thread_worker import ThreadWorker, WorkerPool
 from utils.logging_utils import Logger, setLoggerLevel
 import robots.frodo.frodo_definitions as frodo_definitions
-# import utils.orientation.plot_2d.dynamic.dynamic_2d_plotter as plotter
-import applications.FRODO.utils.web_gui.FRODO_Web_Interface as plotter
+# import utilities.orientation.plot_2d.dynamic.dynamic_2d_plotter as plotter
+import applications.FRODO.utilities.web_gui.FRODO_Web_Interface as plotter
 from utils.orientation.orientation_2d import rotate_vector
 from utils.teleplot import sendValue
 from utils.time import PrecisionTimer

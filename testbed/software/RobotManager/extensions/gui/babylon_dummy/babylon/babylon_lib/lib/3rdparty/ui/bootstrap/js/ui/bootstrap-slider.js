@@ -88,7 +88,7 @@ var windowIsDefined = (typeof window === "undefined" ? "undefined" : _typeof(win
 
 		'use strict';
 
-		// -------------------------- utils -------------------------- //
+		// -------------------------- utilities -------------------------- //
 
 		var slice = Array.prototype.slice;
 

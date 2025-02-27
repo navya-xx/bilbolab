@@ -6,7 +6,7 @@ import qmt
 
 from extensions.optitrack.lib.natnetclient_modified import NatNetClient
 # from extensions.optitrack.lib_peter.DataDescriptions import MarkerDescription
-from utils.callbacks import CallbackContainer, callback_handler
+from utils.callbacks import callback_handler, CallbackContainer
 from utils.events import event_handler, ConditionEvent
 from utils.logging_utils import Logger
 from utils.orientation.orientation_3d import transform_vector_from_a_to_b_frame
