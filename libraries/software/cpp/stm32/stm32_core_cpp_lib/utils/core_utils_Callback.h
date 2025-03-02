@@ -61,6 +61,8 @@ public:
 		this->registered = 1;
 	}
 
+	 using Callback::call;
+
 	void call(input_type argument, output_type &output) {
 		output = this->function_pointer(argument);
 	}
@@ -111,6 +113,8 @@ public:
 		this->registered = 1;
 	}
 
+	 using Callback::call;
+
 	void call(output_type &output) {
 		output = this->_fp();
 	}
@@ -160,6 +164,8 @@ public:
 		this->registered = 1;
 	}
 
+	 using Callback::call;
+
 	void call(input_type input) {
 		this->_fp(input);
 	}
@@ -207,6 +213,8 @@ public:
 		this->_fp = core_utils_FunctionPointer<void, void>(object, member);
 		this->registered = 1;
 	}
+
+	 using Callback::call;
 
 	void call() {
 		this->_fp();

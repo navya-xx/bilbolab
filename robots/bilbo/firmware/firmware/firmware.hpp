@@ -21,11 +21,6 @@
 #include "io.h"
 
 
-typedef struct test_struct_t {
-	float a;
-	uint8_t b;
-}test_struct_t;
-
 class TWIPR_Firmware {
 
 public:

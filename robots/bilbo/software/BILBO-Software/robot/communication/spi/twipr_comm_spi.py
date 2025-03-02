@@ -48,6 +48,9 @@ class BILBO_SPI_Interface:
     def close(self, *args, **kwargs):
         ...
 
+    def send(self, data: (bytes, bytearray)):
+        self.interface.send(data)
+
     # === PRIVATE METHODS ==============================================================================================
     def _configureSampleGPIO(self):
         time.sleep(0.25)

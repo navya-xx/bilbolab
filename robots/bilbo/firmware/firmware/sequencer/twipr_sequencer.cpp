@@ -9,9 +9,8 @@
 #include "twipr_communication.h"
 #include "robot-control_std.h"
 
-
-_RAM_D2 twipr_sequence_input_t rx_sequence_buffer[TWIPR_SEQUENCE_BUFFER_SIZE];
-_RAM_D2 twipr_sequence_input_t sequence_buffer[TWIPR_SEQUENCE_BUFFER_SIZE];
+_RAM_D2 twipr_sequence_input_t rx_sequence_buffer[TWIPR_SEQUENCE_BUFFER_SIZE ];
+_RAM_D2 twipr_sequence_input_t sequence_buffer[TWIPR_SEQUENCE_BUFFER_SIZE ];
 
 TWIPR_Sequencer::TWIPR_Sequencer() {
 
@@ -23,11 +22,11 @@ void TWIPR_Sequencer::init(twipr_sequencer_config_t config) {
 	this->sequence_tick = 0;
 	this->mode = TWIPR_SEQUENCER_MODE_IDLE;
 
-	this->config.comm->registerCallback(TWIPR_COMM_CALLBACK_NEW_TRAJECTORY,
-			core_utils_Callback<void, uint16_t>(this,
-					&TWIPR_Sequencer::spiSequenceReceived_callback));
+	this->config.comm->callbacks.new_trajectory.registerFunction(this,
+			&TWIPR_Sequencer::spiSequenceReceived_callback);
 
-	this->config.control->callbacks.mode_change.registerFunction(this, &TWIPR_Sequencer::modeChange_callback);
+	this->config.control->callbacks.mode_change.registerFunction(this,
+			&TWIPR_Sequencer::modeChange_callback);
 }
 /* =============================================================== */
 void TWIPR_Sequencer::start() {
@@ -43,27 +42,25 @@ void TWIPR_Sequencer::update() {
 
 	// Do the Update
 
-
 }
 /* =============================================================== */
 void TWIPR_Sequencer::startSequence(uint16_t id) {
 	this->sequence_tick = 0;
 
 	// Check the requirements
-	if (!this->_sequence_received){
+	if (!this->_sequence_received) {
 		return;
 	}
 
 	// Check the control mode
-	if (this->config.control->mode != this->loaded_sequence.control_mode){
+	if (this->config.control->mode != this->loaded_sequence.control_mode) {
 		return;
 	}
 
 	// Check if the loaded sequence has the same id
-	if (this->loaded_sequence.sequence_id !=  id){
+	if (this->loaded_sequence.sequence_id != id) {
 		return;
 	}
-
 
 	this->mode = TWIPR_SEQUENCER_MODE_RUNNING;
 
@@ -71,7 +68,7 @@ void TWIPR_Sequencer::startSequence(uint16_t id) {
 	this->config.control->disableExternalInput();
 
 	// Give an audio queue
-	rc_buzzer.setConfig(900, 250, this->loaded_sequence.sequence_id);
+	rc_buzzer.setConfig(900, 100, this->loaded_sequence.sequence_id);
 	rc_buzzer.start();
 
 	// Call the callback(s)
@@ -119,7 +116,6 @@ void TWIPR_Sequencer::finishSequence() {
 
 	// TODO: Send Data to host
 
-
 	//
 	if (this->_callbacks.finished.registered) {
 		this->_callbacks.finished.call(
@@ -127,11 +123,29 @@ void TWIPR_Sequencer::finishSequence() {
 	}
 }
 /* =============================================================== */
-void TWIPR_Sequencer::loadSequence(
+bool TWIPR_Sequencer::loadSequence(
 		twipr_sequencer_sequence_data_t sequence_data) {
+
+	info("Load sequence %d with length %d", sequence_data.sequence_id,
+			sequence_data.length);
+
 	this->loaded_sequence = sequence_data;
 	this->_sequence_received = false;
-	this->config.comm->receiveTrajectory();
+
+	if (sequence_data.length > TWIPR_SEQUENCE_BUFFER_SIZE) {
+		warning("Sequence %d too long: %d samples (%d max)",
+				sequence_data.sequence_id, sequence_data.length,
+				TWIPR_SEQUENCE_BUFFER_SIZE);
+		return false;
+	}
+
+	this->config.comm->receiveTrajectoryInputs(sequence_data.length);
+	return true;
+}
+
+/* =============================================================== */
+twipr_sequencer_sequence_data_t TWIPR_Sequencer::readSequence() {
+	return this->loaded_sequence;
 }
 /* =============================================================== */
 void TWIPR_Sequencer::resetSequenceData() {
@@ -156,19 +170,18 @@ twipr_sequencer_sample_t TWIPR_Sequencer::getSample() {
 /* =============================================================== */
 void TWIPR_Sequencer::spiSequenceReceived_callback(uint16_t trajectory_length) {
 	// Copy the trajectory into the buffer
-	memcpy((uint8_t*) this->buffer,
-			(uint8_t*) this->rx_buffer,
+	memcpy((uint8_t*) this->buffer, (uint8_t*) this->rx_buffer,
 			sizeof(twipr_sequence_input_t) * TWIPR_SEQUENCE_BUFFER_SIZE);
 
 	this->_sequence_received = true;
+	info("Received trajectory");
 }
 
 /* =============================================================== */
-void TWIPR_Sequencer::modeChange_callback(twipr_control_mode_t mode){
+void TWIPR_Sequencer::modeChange_callback(twipr_control_mode_t mode) {
 	// TODO
-	if (this->mode != TWIPR_SEQUENCER_MODE_RUNNING){
+	if (this->mode != TWIPR_SEQUENCER_MODE_RUNNING) {
 		return;
 	}
-
 
 }

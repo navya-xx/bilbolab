@@ -11,9 +11,13 @@ from utils.ctypes_utils import is_valid_ctype, ctype_to_value, value_to_ctype, b
     bytes_to_value, value_to_bytes
 from utils.callbacks import callback_handler, CallbackContainer, Callback
 from utils.events import event_handler, ConditionEvent
-
+from utils.logging_utils import Logger
 
 # === GLOBAL VARIABLES =================================================================================================
+
+logger = Logger('SERIAL')
+logger.setLevel('INFO')
+
 
 # known_messages = []  # Holds all defined SerialMessages
 
@@ -28,8 +32,8 @@ class SerialCommandType(enum.IntEnum):
     UART_CMD_FCT = 0x07
     UART_CMD_ECHO = 0x08
 
+
 # === SerialMessage ====================================================================================================
-@dataclasses.dataclass
 class SerialMessage:
     module: int = 1
     address: int = None
@@ -51,28 +55,9 @@ class SerialMessage:
         except Exception as e:
             return None
 
-    def executeCallback(self):
-        if self.callback is not None:
-            self.callback(self)
-
-
-# # decorator
-# def addSerialMessage(cls):
-#     global known_messages
-#     # Ensure the class inherits from SerialMessage
-#     bases = (SerialMessage,) + cls.__bases__
-#     cls_dict = dict(cls.__dict__)
-#
-#     # Create a new class that extends the original one
-#     new_class = type(cls.__name__, bases, cls_dict)
-#
-#     # Convert the class into a dataclass
-#     new_class = dataclasses.dataclass(new_class)
-#
-#     # Add the class to the known messages
-#     known_messages.append(new_class)
-#
-#     return new_class
+    # def executeCallback(self):
+    #     if self.callback is not None:
+    #         self.callback(self)
 
 
 # ======================================================================================================================
@@ -87,13 +72,19 @@ class ReadRequest:
     def __init__(self):
         self.event = threading.Event()
 
+
 # === CALLBACKS ========================================================================================================
 @callback_handler
 class SerialInterface_Callbacks:
+    rx_all: CallbackContainer
+    event_all: CallbackContainer
+    stream_all: CallbackContainer
+    error_all: CallbackContainer
     rx: CallbackContainer
     event: CallbackContainer
     stream: CallbackContainer
     error: CallbackContainer
+
 
 # === EVENTS ===========================================================================================================
 @event_handler
@@ -102,6 +93,7 @@ class SerialInterface_Events:
     event: ConditionEvent
     stream: ConditionEvent
     error: ConditionEvent
+
 
 # ======================================================================================================================
 class Serial_Interface:
@@ -112,8 +104,6 @@ class Serial_Interface:
     _thread: threading.Thread
     _exit: bool = False
     _readRequest = list[ReadRequest]
-
-
 
     def __init__(self, port: str, baudrate: int = 115200):
         self.device = SerialConnection(device=port, baudrate=baudrate)
@@ -129,7 +119,7 @@ class Serial_Interface:
         ...
 
     # ------------------------------------------------------------------------------------------------------------------
-    def addKnownMessages(self, messages: (object, list[object])):
+    def addMessage(self, messages: (object, list[object])):
         if not isinstance(messages, list):
             messages = [messages]
 
@@ -192,8 +182,8 @@ class Serial_Interface:
 
     def function(self, address, module: int = 1, data=None, input_type=None, output_type=None, timeout=1):
 
-        assert(input_type is None or is_valid_ctype(input_type))
-        assert(output_type is None or is_valid_ctype(output_type))
+        assert (input_type is None or is_valid_ctype(input_type))
+        assert (output_type is None or is_valid_ctype(output_type))
 
         # Convert the input data
         if input_type is not None:
@@ -202,15 +192,14 @@ class Serial_Interface:
         else:
             buffer = None
 
+        # logger.info(f"Sending function call to module {module} and address {address} with data {buffer}")
         self._send(cmd=SerialCommandType.UART_CMD_FCT, module=module, address=address, flag=0, data=buffer)
 
         # Register for reading if type is not None
         if output_type is not None:
             req = self._registerRead(module=module, address=address)
             event_success = req.event.wait(timeout=timeout)
-
             if event_success and req.msg.flag == 1:
-
                 # Check if the data length matches the data type
                 if not ctypes.sizeof(output_type) == len(req.msg.data):
                     return None
@@ -221,6 +210,10 @@ class Serial_Interface:
                 return None
         else:
             return None
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def isRunning(self):
+        return self._thread.is_alive()
 
     # === PRIVATE METHODS ==============================================================================================
 
@@ -236,67 +229,79 @@ class Serial_Interface:
     def _handleIncomingMessage(self, message: UART_Message):
         if message.cmd == SerialCommandType.UART_CMD_WRITE:
             # ERROR. Should not happen
+            logger.warning(f"Received write request for module {message.module} and address {message.address}. Not "
+                           f"supported")
             pass
         elif message.cmd == SerialCommandType.UART_CMD_READ:
             # ERROR. Should not happen
+            logger.warning(f"Received read request for module {message.module} and address {message.address}. Not "
+                           f"supported")
             pass
         elif message.cmd == SerialCommandType.UART_CMD_ANSWER:
             self._handleMessage_answer(message)
+
         elif message.cmd == SerialCommandType.UART_CMD_FCT:
-            # ERROR. Should not happen
+            logger.warning(f"Received function call for module {message.module} and address {message.address}. Not "
+                           f"supported")
             pass
         elif message.cmd == SerialCommandType.UART_CMD_STREAM:
             self._handleMessage_stream(message)
             ...
         elif message.cmd == SerialCommandType.UART_CMD_EVENT:
             self._handleMessage_event(message)
-            ...
 
-        # elif message.cmd == SerialCommandType.UART_CMD_STREAM or message.cmd == SerialCommandType.UART_CMD_EVENT:
-        #     # Check if the message is in the list of known messages
-        #     message_class = next((message_class for message_class in self.known_messages if (
-        #                 message.module == message_class.module and message.address == message_class.address)), None)
-        #     if message_class is None:
-        #         print("Got an unknown message")
-        #     else:
-        #         msg = message_class.decode(message)
-        #         if msg is None:
-        #             print("SHIT")
-        #             return
-        #         for callback in self.callbacks.rx:
-        #             callback(msg)
+        else:
+            logger.warning(f"Received message with unknown command {message.cmd} for module {message.module} and "
+                           f"address {message.address}. Not supported")
+
+        # self.callbacks.rx_all.call(message)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleMessage_answer(self, msg):
+
         # Go through all the read requests and check if anyone waits for this
         if len(self._readRequests) == 0:
             return
 
+        found_request = None
         for req in self._readRequests:
             if req.module == msg.module and req.address == msg.address:
+                logger.debug(f"Got an answer for request {req.module}:{req.address}")
                 req.msg = msg
                 req.event.set()
+                found_request = req
+                break
+
+        if found_request is not None:
+            self._readRequests.remove(found_request)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleMessage_stream(self, message):
-        ...
+        self.callbacks.stream_all.call(message)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleMessage_event(self, message):
-        ...
+
+        known_message_type = next(m for m in self.known_messages if message.address == m.address)
+
+        if known_message_type is not None:
+            known_message = known_message_type.decode(message)
+            if known_message is not None:
+                if known_message.callback is not None:
+                    known_message.callback(known_message.data)
+                self.callbacks.event.call(known_message)
+
+        # self.callbacks.event_all.call(message)
+
     # ------------------------------------------------------------------------------------------------------------------
 
     def _registerRead(self, module, address):
         request = ReadRequest()
 
-        # if isinstance(address, list):
-        #     address = bytes(address)
-        # elif isinstance(address, int):
-        #     address = utilities.bytes.intToByte(address, 2)
-
         request.address = address
         request.module = module
 
+        logger.debug(f"Register read request for module {module} and address {address}")
         self._readRequests.append(request)
         return request
 

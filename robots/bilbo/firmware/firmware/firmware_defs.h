@@ -49,6 +49,7 @@
 #define REG_ADDRESS_F_SEQUENCE_LOAD 0x21
 #define REG_ADDRESS_F_SEQUENCE_START 0x22
 #define REG_ADDRESS_F_SEQUENCE_STOP 0x23
+#define REG_ADDRESS_F_SEQUENCE_READ 0x24
 
 
 // ------------------------------------------------------------------------------------------------ //

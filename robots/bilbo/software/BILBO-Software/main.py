@@ -1,3 +1,4 @@
+import ctypes
 import time
 
 from robot.bilbo import BILBO
@@ -16,7 +17,6 @@ def main():
     bilbo.start()
 
     while True:
-        bilbo.board.beep()
         time.sleep(1)
 
 

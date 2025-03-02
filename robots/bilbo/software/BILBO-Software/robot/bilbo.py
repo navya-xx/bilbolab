@@ -1,3 +1,4 @@
+import ctypes
 import dataclasses
 import threading
 import time
@@ -72,7 +73,6 @@ class BILBO:
         self.lock = SingletonLock(lock_file="/tmp/twipr.lock", timeout=10)
         self.lock.__enter__()
 
-
         self.logger = Logger("BILBO")
 
         if reset_stm32:
@@ -140,7 +140,7 @@ class BILBO:
         self.sensors.start()
         self.logging.start()
         self.logger.debug("Start BILBO")
-        beep(frequency='middle', repeats=1)
+        # beep(frequency='middle', repeats=1)
         self._eventListener.start()
         self.board.setRGBLEDExtern([0, 0, 0])
 
@@ -172,7 +172,7 @@ class BILBO:
     # === PRIVATE METHODS ==============================================================================================
     def _shutdown(self, *args, **kwargs):
         # Beep for audio reference
-        beep(frequency='low', time_ms=200, repeats=2)
+        # beep(frequency='low', time_ms=200, repeats=2)
         self.logger.info("Shutdown BILBO")
         self.control.setMode(BILBO_Control_Mode.OFF)
         self._eventListener.stop()

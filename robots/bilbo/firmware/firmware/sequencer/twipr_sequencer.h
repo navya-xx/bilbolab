@@ -32,6 +32,7 @@ typedef struct twipr_sequencer_sequence_data_t {
 	uint16_t wait_time_end; // Time in ticks after sequence
 	twipr_control_mode_t control_mode; // Control mode in which the sequence is run
 	twipr_control_mode_t control_mode_end; // Control mode to witch to after the sequence
+	bool loaded;
 } twipr_sequencer_sequence_data_t;
 
 typedef enum twipr_sequencer_callback_id_t {
@@ -80,7 +81,9 @@ public:
 	void startSequence(uint16_t id);
 	void abortSequence();
 	void finishSequence();
-	void loadSequence(twipr_sequencer_sequence_data_t);
+	bool loadSequence(twipr_sequencer_sequence_data_t);
+	twipr_sequencer_sequence_data_t readSequence();
+
 	void resetSequenceData();
 
 	twipr_sequencer_sample_t getSample();

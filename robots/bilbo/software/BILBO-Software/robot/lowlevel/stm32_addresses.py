@@ -1,7 +1,10 @@
 import enum
 
+
 class TWIPR_AddressTables(enum.IntEnum):
     REGISTER_TABLE_GENERAL = 0x01
+
+
 class TWIPR_GeneralAddresses(enum.IntEnum):
     ADDRESS_FIRMWARE_STATE = 0x01
     ADDRESS_FIRMWARE_TICK = 0x02
@@ -25,3 +28,10 @@ class TWIPR_ControlAddresses(enum.IntEnum):
     ADDRESS_CONTROL_READ_CONFIG = 0x18
 
     ADDRESS_CONTROL_RW_MAX_WHEEL_SPEED = 0x20
+
+
+class TWIPR_SequencerAddresses(enum.IntEnum):
+    LOAD = 0x21
+    START = 0x22
+    STOP = 0x23
+    READ = 0x24

@@ -1,11 +1,15 @@
 from core.communication.serial.serial_interface import Serial_Interface, SerialMessage
 import robot.lowlevel.stm32_addresses as addresses
+from robot.communication.serial.bilbo_serial_messages import BILBO_SERIAL_MESSAGES
 from robot.lowlevel.stm32_general import twipr_firmware_revision
 from robot.lowlevel.stm32_messages import *
 from utils.callbacks import callback_handler, CallbackContainer
 from utils.ctypes_utils import CType
 from utils.events import ConditionEvent
+from utils.logging_utils import Logger
 
+logger = Logger("BILBO SERIAL")
+logger.setLevel("INFO")
 
 # === CALLBACKS ========================================================================================================
 @callback_handler
@@ -15,12 +19,14 @@ class BILBO_Serial_Communication_Callbacks:
     error: CallbackContainer
     debug: CallbackContainer
 
+
 # === EVENTS ===========================================================================================================
 class BILBO_Serial_Communication_Events:
     rx: ConditionEvent
     event: ConditionEvent
     error: ConditionEvent
     debug: ConditionEvent
+
 
 # === BILBO_Serial_Communication =======================================================================================
 class BILBO_Serial_Communication:
@@ -30,16 +36,18 @@ class BILBO_Serial_Communication:
     def __init__(self, interface: Serial_Interface):
         self.interface = interface
         self.interface.callbacks.rx.register(self._rx_callback)
+        self.interface.callbacks.event.register(self._rx_event_callback)
         self.callbacks = BILBO_Serial_Communication_Callbacks()
+
+        self.interface.addMessage(BILBO_SERIAL_MESSAGES)
 
     # === METHODS ======================================================================================================
     def init(self):
         ...
-        # self.interface.init()
 
     # ------------------------------------------------------------------------------------------------------------------
     def start(self):
-        if not self.interface._thread.is_alive():
+        if not self.interface.isRunning():
             self.interface.start()
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -51,11 +59,12 @@ class BILBO_Serial_Communication:
         self.interface.write(module, address, value, type)
 
     # ------------------------------------------------------------------------------------------------------------------
-    def readValue(self, address:int, module: int = 0, type=ctypes.c_uint8):
+    def readValue(self, address: int, module: int = 0, type=ctypes.c_uint8):
         return self.interface.read(address, module, type)
 
     # ------------------------------------------------------------------------------------------------------------------
-    def executeFunction(self, address, module: int = 0, data=None, input_type:CType=None, output_type=None, timeout=0.01):
+    def executeFunction(self, address, module: int = 0, data=None, input_type: CType = None, output_type=None,
+                        timeout=0.1):
         return self.interface.function(address, module, data, input_type, output_type, timeout)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -73,6 +82,7 @@ class BILBO_Serial_Communication:
                                        type=twipr_firmware_revision)
 
         return revision
+
     # ------------------------------------------------------------------------------------------------------------------
     def debug(self, state):
         self.interface.function(module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
@@ -82,7 +92,11 @@ class BILBO_Serial_Communication:
 
     # ------------------------------------------------------------------------------------------------------------------
 
-
     # === PRIVATE METHODS ==============================================================================================
     def _rx_callback(self, message: SerialMessage, *args, **kwargs):
-        message.executeCallback()
+        pass
+        # message.executeCallback()
+
+    def _rx_event_callback(self, message: SerialMessage, *args, **kwargs):
+        # logger.info(f"got a message of type {type(message)}")
+        pass
