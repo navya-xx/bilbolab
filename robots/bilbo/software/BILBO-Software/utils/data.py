@@ -1,8 +1,6 @@
 from math import isclose
 
 
-
-
 def limit(value, high, low=None):
     if low is None:
         low = -high
@@ -13,6 +11,7 @@ def limit(value, high, low=None):
         return high
 
     return value
+
 
 def are_lists_approximately_equal(K1, K2, rel_tol=1e-6, abs_tol=1e-6):
     """

@@ -173,6 +173,7 @@ void TWIPR_Sequencer::spiSequenceReceived_callback(uint16_t trajectory_length) {
 	memcpy((uint8_t*) this->buffer, (uint8_t*) this->rx_buffer,
 			sizeof(twipr_sequence_input_t) * TWIPR_SEQUENCE_BUFFER_SIZE);
 
+	this->loaded_sequence.loaded = true;
 	this->_sequence_received = true;
 	info("Received trajectory");
 }

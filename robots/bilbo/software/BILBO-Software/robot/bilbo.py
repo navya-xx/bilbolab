@@ -1,29 +1,31 @@
-import ctypes
-import dataclasses
-import threading
 import time
 
 # === OWN PACKAGES =====================================================================================================
 from control_board.control_board import RobotControl_Board
 from control_board.stm32.stm32 import resetSTM32
+from robot.experiment.bilbo_experiment import BILBO_ExperimentHandler
 from robot.utilities.id import readID
 from utils.callbacks import callback_handler, CallbackContainer
 from utils.events import EventListener, ConditionEvent, event_handler
 from utils.exit import ExitHandler
+from utils.garbagecollector import disable_gc
 from utils.singletonlock.singletonlock import SingletonLock, terminate
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.control.definitions import BILBO_Control_Mode
 from robot.control.bilbo_control import BILBO_Control
-from robot.drive.twipr_drive import TWIPR_Drive
-from robot.estimation.twipr_estimation import TWIPR_Estimation
-from robot.logging.twipr_logging import TWIPR_Logging
+from robot.drive.bilbo_drive import BILBO_Drive
+from robot.estimation.bilbo_estimation import BILBO_Estimation
+from robot.logging.bilbo_logging import BILBO_Logging
 from robot.logging.bilbo_sample import BILBO_Sample_General
-from robot.sensors.twipr_sensors import TWIPR_Sensors
+from robot.sensors.bilbo_sensors import BILBO_Sensors
 from utils.logging_utils import Logger, setLoggerLevel
-from utils.time import IntervalTimer
 from robot.supervisor.twipr_supervisor import TWIPR_Supervisor
 from utils.revisions import get_versions, is_ll_version_compatible
 from robot.utilities.buzzer import beep
+from utils.sound.sound import SoundSystem
+
+sound = SoundSystem(volume=0.4)
+sound.start()
 
 # === GLOBAL VARIABLES =================================================================================================
 
@@ -49,9 +51,11 @@ class BILBO:
     board: RobotControl_Board
     communication: BILBO_Communication
     control: BILBO_Control
-    estimation: TWIPR_Estimation
-    drive: TWIPR_Drive
-    sensors: TWIPR_Sensors
+    estimation: BILBO_Estimation
+    drive: BILBO_Drive
+    sensors: BILBO_Sensors
+    experiment_handler: BILBO_ExperimentHandler
+    logging: BILBO_Logging
 
     events: BILBO_Events
 
@@ -60,7 +64,9 @@ class BILBO:
     exit: ExitHandler
 
     loop_time: float
+    tick: int = 0
 
+    _last_update_time: float = 0
     _first_sample_user_message_sent: bool = False
     _eventListener: EventListener
 
@@ -84,6 +90,9 @@ class BILBO:
         self.id = readID()
 
         self.loop_time = 0
+        self.update_time = 0
+        self._last_update_time = time.perf_counter()
+        self.tick = 0
         # self._last_loop_time = 0
 
         # Set up the control board
@@ -95,20 +104,25 @@ class BILBO:
 
         # Set up the individual modules
         self.control = BILBO_Control(comm=self.communication)
-        self.estimation = TWIPR_Estimation(comm=self.communication)
-        self.drive = TWIPR_Drive(comm=self.communication)
-        self.sensors = TWIPR_Sensors(comm=self.communication)
+        self.estimation = BILBO_Estimation(comm=self.communication)
+        self.drive = BILBO_Drive(comm=self.communication)
+        self.sensors = BILBO_Sensors(comm=self.communication)
         self.supervisor = TWIPR_Supervisor(comm=self.communication)
-        self.logging = TWIPR_Logging(comm=self.communication,
+        self.experiment_handler = BILBO_ExperimentHandler(communication=self.communication)
+
+        self.logging = BILBO_Logging(comm=self.communication,
                                      control=self.control,
                                      estimation=self.estimation,
                                      drive=self.drive,
                                      sensors=self.sensors,
+                                     experiment_handler=self.experiment_handler,
                                      general_sample_collect_function=self._getSample)
 
         self.events = BILBO_Events()
         self.callbacks = BILBO_Callbacks()
         self._eventListener = EventListener(event=self.communication.events.rx_stm32_sample, callback=self.update)
+
+        # self.communication.callbacks.rx_stm32_sample2.register(self.update)
         self.exit = ExitHandler()
         self.exit.register(self._shutdown)
 
@@ -126,6 +140,8 @@ class BILBO:
         self.board.start()
         self.communication.start()
 
+        self._last_update_time = time.perf_counter()
+
         # Read the firmware revision
         # if not self._checkFirmwareRevision():
         #     exit()
@@ -141,15 +157,20 @@ class BILBO:
         self.logging.start()
         self.logger.debug("Start BILBO")
         # beep(frequency='middle', repeats=1)
+        sound.play('notification')
         self._eventListener.start()
         self.board.setRGBLEDExtern([0, 0, 0])
 
     # ------------------------------------------------------------------------------------------------------------------
-    def update(self):
+    def update(self, *args, **kwargs):
         """
         This is the main update function for the robot
         """
         time_loop_start = time.perf_counter()
+        # with disable_gc():
+        self.update_time = time.perf_counter() - self._last_update_time
+
+        self._last_update_time = time.perf_counter()
         # Update the control
         self.control.update()
 
@@ -167,12 +188,20 @@ class BILBO:
 
         if not self._first_sample_user_message_sent:
             self._sendFirstSampleMessage()
+
+        self.tick += 10
         self.loop_time = time.perf_counter() - time_loop_start
+        # print(f"{self.loop_time*1000:.2f} ms")
+        if self.loop_time > 0.1:
+            self.logger.warning(f"Loop took {self.loop_time * 1000:.2f} ms")
+        if self.update_time > 0.12:
+            self.logger.warning(f"Update took {self.update_time * 1000:.2f} ms")
 
     # === PRIVATE METHODS ==============================================================================================
     def _shutdown(self, *args, **kwargs):
         # Beep for audio reference
         # beep(frequency='low', time_ms=200, repeats=2)
+        sound.play('warning')
         self.logger.info("Shutdown BILBO")
         self.control.setMode(BILBO_Control_Mode.OFF)
         self._eventListener.stop()
@@ -208,12 +237,23 @@ class BILBO:
     # ------------------------------------------------------------------------------------------------------------------
     def _getSample(self):
         sample = BILBO_Sample_General()
-        sample.status = 'ok'
-        sample.id = self.id
-        sample.configuration = ''
-        sample.time = self.communication.wifi.getTime()
-        sample.tick = 0
-        sample.sample_time = 0.1
+        # sample.status = 'ok'
+        # sample.id = self.id
+        # sample.configuration = ''
+        # sample.time_global = self.communication.wifi.getTime()
+        # sample.tick = self.tick
+        # sample.sample_time = 0.1
+        # sample.sample_time_ll = 0.01
+        sample = {
+            'status': 'ok',
+            'id': self.id,
+            'time': 0.0,
+            'configuration': '',
+            'time_global': self.communication.wifi.getTime(),
+            'tick': self.tick,
+            'sample_time': 0.1,
+            'sample_time_ll': 0.01,
+        }
         return sample
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -230,13 +270,6 @@ class BILBO:
         self.logger.info(f"BILBO is running")
         self.logger.info(f"Battery Voltage: {self.logging.sample.sensors.power.bat_voltage:.2f} V")
         self._first_sample_user_message_sent = True
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # def _threadFunction(self):
-    #     self._updateTimer.reset()
-    #     while True:
-    #         self.update()
-    #         self._updateTimer.sleep_until_next()
 
     # ------------------------------------------------------------------------------------------------------------------
     def __del__(self):

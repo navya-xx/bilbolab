@@ -55,8 +55,9 @@ class BILBO_Communication:
         self.callbacks = BILBO_Communication_Callbacks()
         self.events = BILBO_Communication_Events()
 
+
         # Configure the SPI Interface
-        self.spi.callbacks.rx_samples.register(self._stm32_rx_sample_callback)
+        self.spi.callbacks.rx_latest_sample.register(self._stm32_rx_sample_callback)
 
         setLoggerLevel('tcp', 'WARNING')
         # self.wifi.callbacks.connected.register()
@@ -86,16 +87,17 @@ class BILBO_Communication:
         self.spi.close()
 
     # === PRIVATE METHODS ==============================================================================================
-    def _stm32_rx_sample_callback(self, samples, *args, **kwargs):
-        sample = samples[0]
+    def _stm32_rx_sample_callback(self, sample, *args, **kwargs):
+        # sample = samples[0]
 
         # Execute the callbacks
         for callback in self.callbacks.rx_stm32_sample:
             callback(sample)
 
         # Set the events
-        self.events.rx_stm32_sample.set(samples)
+        self.events.rx_stm32_sample.set(sample)
         self.events.stm32_tick.set(sample.general.tick)
+
 
     # ------------------------------------------------------------------------------------------------------------------
     def _log_redirection(self, log_entry, log, logger: Logger, level):

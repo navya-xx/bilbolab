@@ -17,8 +17,8 @@ class TWIPR_Estimation_State:
 
 
 class TWIPR_Estimation_Status(enum.IntEnum):
-    TWIPR_ESTIMATION_STATUS_ERROR = 0,
-    TWIPR_ESTIMATION_STATUS_NORMAL = 1,
+    ERROR = 0,
+    NORMAL = 1,
 
 
 class TWIPR_Estimation_Mode(enum.IntEnum):
@@ -26,16 +26,16 @@ class TWIPR_Estimation_Mode(enum.IntEnum):
     TWIPR_ESTIMATION_MODE_POS = 1
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class TWIPR_Estimation_Sample:
-    status: TWIPR_Estimation_Status = TWIPR_Estimation_Status.TWIPR_ESTIMATION_STATUS_ERROR
+    status: TWIPR_Estimation_Status = TWIPR_Estimation_Status.ERROR
     state: TWIPR_Estimation_State = dataclasses.field(default_factory=TWIPR_Estimation_State)
     mode: TWIPR_Estimation_Mode = TWIPR_Estimation_Mode.TWIPR_ESTIMATION_MODE_VEL
 
 
 # ======================================================================================================================
 
-class TWIPR_Estimation:
+class BILBO_Estimation:
     _comm: BILBO_Communication
 
     state: TWIPR_Estimation_State
@@ -47,18 +47,24 @@ class TWIPR_Estimation:
         self._comm = comm
 
         self.state = TWIPR_Estimation_State()
-
+        self.status = TWIPR_Estimation_Status.NORMAL
+        self.mode = TWIPR_Estimation_Mode.TWIPR_ESTIMATION_MODE_VEL
         self._comm.callbacks.rx_stm32_sample.register(self._onSample)
 
     # ==================================================================================================================
 
     # ------------------------------------------------------------------------------------------------------------------
     def getSample(self) -> TWIPR_Estimation_Sample:
-        sample = TWIPR_Estimation_Sample()
-        sample.mode = TWIPR_Estimation_Mode.TWIPR_ESTIMATION_MODE_VEL
-        sample.status = TWIPR_Estimation_Status.TWIPR_ESTIMATION_STATUS_NORMAL
-        sample.state = self.state
-
+        # sample = TWIPR_Estimation_Sample(
+        #     mode=self.mode,
+        #     status=self.status,
+        #     state=self.state
+        # )
+        sample = {
+            'mode': self.mode,
+            'status': self.status,
+            'state': dataclasses.asdict(self.state)
+        }
         return sample
 
     # ==================================================================================================================

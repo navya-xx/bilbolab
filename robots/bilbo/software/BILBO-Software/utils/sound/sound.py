@@ -454,11 +454,11 @@ if __name__ == "__main__":
     sound_system = SoundSystem(volume=0.9, primary_engine=primary_engine, add_robot_filter=True)
     sound_system.start()
     cleanTTS()
-    try:
-        # playSound('warning')
-        speak("")
-        # speak("Pello")
-        # playSound('startup')
-        time.sleep(5)
-    finally:
-        sound_system.close()
+    # try:
+    #     # playSound('warning')
+    #     speak("")
+    #     # speak("Pello")
+    #     # playSound('startup')
+    #     time.sleep(5)
+    # finally:
+    #     sound_system.close()

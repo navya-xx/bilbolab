@@ -36,7 +36,7 @@ static core_comm_SerialMessage_memory<128> incoming_msg;
 static core_comm_SerialMessage_memory<128> outgoing_msg;
 
 // Flag to indicate if data is available in the receive queue.
-//bool rx_available = false;
+bool rx_available = false;
 
 /**
  * @brief Task function that executes the UART communication routine.
@@ -181,24 +181,24 @@ void TWIPR_UART_Communication::registerCallback(twipr_uart_comm_callback_id_t ca
  */
 void TWIPR_UART_Communication::taskFunction() {
     // Main loop for processing incoming messages.
-//    while (true) {
-//        if (rx_available) {
-//            rx_available = false;
-//            // Check if there is data in the RX queue.
-//            if (this->_uart_cm4.rx_queue.available()) {
-//                this->_handleIncomingMessages();
-//            }
-//        }
-//        osDelay(2);  // Delay to allow other tasks to execute.
-//        // Alternatively, you could use task notifications:
-//    }
-
-    while (true){
-    	 ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    	 if (this->_uart_cm4.rx_queue.available()) {
-    	                this->_handleIncomingMessages();
-			}
+    while (true) {
+        if (rx_available) {
+            rx_available = false;
+            // Check if there is data in the RX queue.
+            if (this->_uart_cm4.rx_queue.available()) {
+                this->_handleIncomingMessages();
+            }
+        }
+        osDelay(2);  // Delay to allow other tasks to execute.
+        // Alternatively, you could use task notifications:
     }
+//
+//    while (true){
+//    	 ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+//    	 if (this->_uart_cm4.rx_queue.available()) {
+//    	                this->_handleIncomingMessages();
+//			}
+//    }
 }
 
 /**
@@ -269,9 +269,9 @@ void TWIPR_UART_Communication::_handleIncomingMessages() {
  * function to trigger message processing.
  */
 void TWIPR_UART_Communication::_rx_callback() {
-//    rx_available = true;
-    // Optionally, notify the task directly if a task notification mechanism is used:
-     if (this->task != NULL) {
-         xTaskNotifyGive(this->task);
-     }
+    rx_available = true;
+//    // Optionally, notify the task directly if a task notification mechanism is used:
+//     if (this->task != NULL) {
+//         xTaskNotifyGive(this->task);
+//     }
 }

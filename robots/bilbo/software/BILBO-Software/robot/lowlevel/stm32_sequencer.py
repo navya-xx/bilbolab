@@ -1,4 +1,5 @@
 import ctypes
+import dataclasses
 
 from utils.ctypes_utils import STRUCTURE
 
@@ -24,3 +25,15 @@ class bilbo_sequence_description_t:
         ('control_mode_end', ctypes.c_uint8),
         ('loaded', ctypes.c_bool),
     ]
+
+
+@dataclasses.dataclass
+class BILBO_Sequence_LL:
+    sequence_id: int
+    length: int
+    require_control_mode: bool
+    wait_time_beginning: int
+    wait_time_end: int
+    control_mode: int
+    control_mode_end: int
+    loaded: bool

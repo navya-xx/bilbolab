@@ -2,7 +2,7 @@ import ctypes
 import dataclasses
 
 # Samples LL
-SAMPLE_BUFFER_SIZE = 10
+SAMPLE_BUFFER_LL_SIZE = 10
 
 
 class bilbo_ll_sample_general_struct(ctypes.Structure):

@@ -348,6 +348,7 @@ void TWIPR_Firmware::controlTask() {
         // Calculate elapsed time for the loop
         loop_time = osKernelGetTickCount() - global_tick;
 
+
         // If loop time exceeds allowed period, flag an error
         if (loop_time > (1000.0 / (float)TWIPR_CONTROL_TASK_FREQ)) {
             this->firmware_state = TWIPR_FIRMWARE_STATE_ERROR;
