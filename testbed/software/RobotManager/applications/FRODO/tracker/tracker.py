@@ -51,11 +51,13 @@ class Tracker:
         :param assets: Dictionary of assets to be tracked, default is vision_robot_application_assets.
         """
         self.assets = assets
-        self.optitrack = OptiTrack(server_address="bree.lan")  # Initialize OptiTrack with server address
+        self.optitrack = OptiTrack(server_address="192.168.8.248")  # Initialize OptiTrack with server address
 
         # Set up event listener for new samples
-        self.event_listener_sample = EventListener(self.optitrack.events.sample,
-                                                   callback=self._optitrack_new_sample_callback)
+        # self.event_listener_sample = EventListener(self.optitrack.events.sample,
+        #                                            callback=self._optitrack_new_sample_callback)
+
+        self.optitrack.events.sample.on(self._optitrack_new_sample_callback)
 
         # Register callback for description reception
         self.optitrack.callbacks.description_received.register(self._optitrack_description_callback)
@@ -82,7 +84,7 @@ class Tracker:
             return False
 
         logger.info("Starting Tracker")
-        self.event_listener_sample.start()  # Start the event listener for new samples
+        # self.event_listener_sample.start()  # Start the event listener for new samples
         # self._thread.start()  # Uncomment if background thread processing is needed
 
     # === PRIVATE METHODS ==============================================================================================

@@ -219,7 +219,7 @@ class OptiTrack:
         for callback in self.callbacks.sample:
             callback(sample)
 
-        self.events.sample.set(sample)
+        self.events.sample.set(resource=sample)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _extract_initial_mocap_information(self, data):

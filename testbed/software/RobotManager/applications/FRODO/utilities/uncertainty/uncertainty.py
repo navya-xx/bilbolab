@@ -4,8 +4,10 @@ import numpy as np
 import scipy.interpolate as sci
 import matplotlib.pyplot as plt
 
+from utils.files import relativeToFullPath
+
 ERROR_FACTOR = 2
-ERROR_FILE_PATH = "./applications/FRODO/utilities/uncertainty/error_data/v3_tagged_error_data.json"
+ERROR_FILE_PATH = relativeToFullPath("./error_data/v3_tagged_error_data.json")
 
 error_file = open(ERROR_FILE_PATH)
 error_data = json.load(error_file)
