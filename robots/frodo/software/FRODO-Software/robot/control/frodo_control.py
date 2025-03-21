@@ -85,7 +85,6 @@ class FRODO_Control:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _update(self):
-        return
         speed_left = 0.0
         speed_right = 0.0
         if self.mode == FRODO_Control_Mode.EXTERNAL:
