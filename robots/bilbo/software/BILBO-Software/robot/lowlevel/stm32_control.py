@@ -31,8 +31,9 @@ class bilbo_control_speed_input_t(ctypes.Structure):
 
 
 class BILBO_Control_Status_LL(enum.IntEnum):
-    ERROR = 0
-    NORMAL = 1
+    ERROR = -1
+    IDLE = 0
+    RUNNING = 1
 
 
 class BILBO_Control_Mode_LL(enum.IntEnum):
@@ -52,4 +53,8 @@ class bilbo_control_configuration_ll_t:
         'turn_p': ctypes.c_float,
         'turn_i': ctypes.c_float,
         'turn_d': ctypes.c_float,
+        'vic_enabled': ctypes.c_bool,
+        'vic_ki': ctypes.c_float,
+        'vic_max_error': ctypes.c_float,
+        'vic_v_limit': ctypes.c_float,
     }

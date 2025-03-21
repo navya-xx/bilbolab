@@ -3,6 +3,8 @@ import os
 import re
 import shlex
 import inspect
+import threading
+
 import utils.colors as colors
 import utils.string as string
 from utils.callbacks import Callback, callback_handler, CallbackContainer
@@ -10,7 +12,6 @@ from utils.logging_utils import Logger
 
 logger = Logger('CLI')
 logger.setLevel("INFO")
-os.system("")
 
 
 @dataclasses.dataclass
@@ -35,6 +36,7 @@ class Command:
     name: str
     arguments: dict[str, CommandArgument] = None
     callback: Callback
+    execute_in_thread: bool
 
     def __init__(self,
                  name,
@@ -42,9 +44,11 @@ class Command:
                  description='',
                  arguments: list[CommandArgument] = None,
                  allow_positionals=False,
+                 execute_in_thread=False,
                  **kwargs):
 
         self.name = name
+        self.execute_in_thread = execute_in_thread
         self.logger = Logger(f"Command \"{self.name}\"")
         self.description = description
         self.allow_positionals = allow_positionals
@@ -59,7 +63,10 @@ class Command:
 
     def function(self, *args, **kwargs):
         if self.callback is not None:
-            return self.callback(*args, **kwargs)
+            if self.execute_in_thread:
+                threading.Thread(target=self.callback, args=args, kwargs=kwargs).start()
+            else:
+                return self.callback(*args, **kwargs)
 
     def run(self, command_input):
         # Parse the string or token list.
@@ -610,30 +617,6 @@ class CLI:
                 self.trace(ret)
             return ret
 
-    # def getCommandSetByPath(self, path: list) -> (CommandSet, None):
-    #     """
-    #     Helper method to retrieve a CommandSet by a given path.
-    #     The path is a list of command-set names starting at the root.
-    #     For example, given path ['.', 'set1', 'set2'], the method will start
-    #     at the root and search for child sets 'set1' then 'set2'.
-    #     """
-    #     if self.root_set is None:
-    #         return None
-    #
-    #     current_set = self.root_set
-    #     if not path:
-    #         return current_set
-    #
-    #     for token in path:
-    #         # If the token is '.' or matches the current set's name, stay here.
-    #         if token == '.' or token == current_set.name:
-    #             continue
-    #         elif token in current_set.child_sets:
-    #             current_set = current_set.child_sets[token]
-    #         else:
-    #             logger.error(f"Command set token '{token}' not found in '{current_set.name}'")
-    #             return None
-    #     return current_set
 
     def executeFromConnectorDict(self, command_dict: dict):
         """

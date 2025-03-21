@@ -1,6 +1,6 @@
 import time
 
-from applications.BILBO.general.JoystickControl import SimpleTwiprJoystickControl
+from applications.BILBO._archive.JoystickControl import SimpleTwiprJoystickControl
 from utils.logging_utils import Logger
 
 logger = Logger('app')

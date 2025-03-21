@@ -1,9 +1,11 @@
+import gc
+
 from core.device_manager import DeviceManager
 from core.device import Device
 from robots.bilbo.utils.bilbo_cli import BILBO_Manager_CommandSet
 from utils.callbacks import callback_handler, CallbackContainer
 from robots.bilbo.bilbo import BILBO
-from robots.bilbo.bilbo_definitions import TWIPR_ControlMode, TWIPR_IDS, TWIPR_PASSWORD, TWIPR_REMOTE_START_COMMAND, \
+from robots.bilbo.bilbo_definitions import BILBO_Control_Mode, TWIPR_IDS, TWIPR_PASSWORD, TWIPR_REMOTE_START_COMMAND, \
     TWIPR_USER_NAME, TWIPR_REMOTE_STOP_COMMAND
 from robots.bilbo.utils.robotscanner import RobotScanner
 from utils.time import delayed_execution
@@ -120,7 +122,7 @@ class BILBO_Manager:
         """
         logger.warning("Emergency Stop")
         for robot in self.robots.values():
-            robot.control.setControlMode(TWIPR_ControlMode.TWIPR_CONTROL_MODE_OFF)
+            robot.control.setControlMode(BILBO_Control_Mode.OFF)
 
     # ------------------------------------------------------------------------------------------------------------------
     def setRobotControlMode(self, robot, mode):
@@ -187,7 +189,7 @@ class BILBO_Manager:
         robot = self.robots[device.information.device_id]
         self.robots.pop(device.information.device_id)
 
-        logger.info(f"Robot {device.information.device_id} disconnected")
+        logger.warning(f"Robot {device.information.device_id} disconnected")
 
         # Remove the CLI Command Set
         self.cli_command_set.removeChild(robot.cli_command_set)

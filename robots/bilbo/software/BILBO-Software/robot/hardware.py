@@ -2,7 +2,6 @@ from utils.files import fileExists, deleteFile, relativeToFullPath
 from utils.json_utils import readJSON, writeJSON
 from paths import config_path
 
-#
 # hardware_definition = {
 #     'electronics': {
 #         'board_revision': 'v4',
@@ -39,13 +38,54 @@ from paths import config_path
 #         }
 #     }
 
-hardware_definition = {
+hardware_definition_big_bilbo = {
+    'model': {
+        'type': 'big'
+    },
+    'settings': {
+      'theta_offset': math.radians(2.0),
+    },
+    'electronics': {
+        'board_revision': 'v4.1',
+        'shield': None,
+        'display': 'oled_bw_128x64',
+        'sound': {
+            'active': False,
+            'gain': 0.5,
+        },
+        'buttons': {
+            'primary': {
+                'exists': True,
+                'type': 'internal',
+                'pin': 5,
+                'led': {
+                    'exists': True,
+                    'type': 'internal',
+                    'pin': 4,
+                }
+            },
+            'secondary': {
+                'exists': False,
+            },
+        },
+        'leds': {},
+        'sensors': {},
+    }
+}
+
+hardware_definition_small_bilbo = {
+    'model': {
+        'type': 'small'
+    },
+    'settings': {
+        'theta_offset': math.radians(2.0),
+    },
     'electronics': {
         'board_revision': 'v4',
         'shield': None,
         'display': 'oled_bw_128x64',
         'sound': {
-            'active': True,
+            'active': False,
             'gain': 0.5,
         },
         'buttons': {
@@ -74,7 +114,7 @@ def generate_hardware_definition():
     if fileExists(file):
         deleteFile(file)
 
-    writeJSON(file, hardware_definition)
+    writeJSON(file, hardware_definition_big_bilbo)
 
 
 def get_hardware_definition():

@@ -1,14 +1,15 @@
 import ctypes
 import dataclasses
 
+from robot.lowlevel.stm32_errors import bilbo_ll_log_entry_t, BILBO_LL_Log_Entry, TWIPR_ErrorType
+
 # Samples LL
 SAMPLE_BUFFER_LL_SIZE = 10
 
 
 class bilbo_ll_sample_general_struct(ctypes.Structure):
     _fields_ = [("tick", ctypes.c_uint32),
-                ("status", ctypes.c_int8),
-                ("error", ctypes.c_uint8)]
+                ("status", ctypes.c_int8)]
 
 
 @dataclasses.dataclass
@@ -16,6 +17,17 @@ class BILBO_LL_Sample_General:
     tick: int = 0
     status: int = 0
     error: int = 0
+
+
+class bilbo_ll_sample_errors_struct(ctypes.Structure):
+    _fields_ = [("state", ctypes.c_int8),
+                ("last_entry", bilbo_ll_log_entry_t), ]
+
+
+@dataclasses.dataclass
+class BILBO_LL_Sample_Errors:
+    state: TWIPR_ErrorType = TWIPR_ErrorType.NONE
+    last_entry: BILBO_LL_Log_Entry = dataclasses.field(default_factory=BILBO_LL_Log_Entry)
 
 
 class bilbo_ll_gyr_data_struct(ctypes.Structure):
@@ -185,6 +197,7 @@ class BILBO_LL_Sample_Debug:
 
 class bilbo_ll_sample_struct(ctypes.Structure):
     _fields_ = [("general", bilbo_ll_sample_general_struct),
+                ("errors", bilbo_ll_sample_errors_struct),
                 ("control", bilbo_ll_sample_control_struct),
                 ("estimation", bilbo_ll_sample_estimation_struct),
                 ("sensors", bilbo_ll_sensor_data_struct),
@@ -195,6 +208,7 @@ class bilbo_ll_sample_struct(ctypes.Structure):
 @dataclasses.dataclass
 class BILBO_LL_Sample:
     general: BILBO_LL_Sample_General = dataclasses.field(default_factory=BILBO_LL_Sample_General)
+    errors: BILBO_LL_Sample_Errors = dataclasses.field(default_factory=BILBO_LL_Sample_Errors)
     control: BILBO_LL_Sample_Control = dataclasses.field(default_factory=BILBO_LL_Sample_Control)
     estimation: BILBO_LL_Sample_Estimation = dataclasses.field(default_factory=BILBO_LL_Sample_Estimation)
     sensors: BILBO_LL_Sensor_Data = dataclasses.field(default_factory=BILBO_LL_Sensor_Data)

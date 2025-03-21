@@ -11,9 +11,7 @@ TWIPR_ControlManager *manager;
 
 osSemaphoreId_t semaphore_external_input;
 
-/* ======================================================== */
-//core_utils_RegisterEntry<uint8_t, twipr_control_mode_t> regf_set_mode(&register_map, 0x05, manager, &TWIPR_ControlManager::setMode);
-/* ======================================================== */
+
 TWIPR_ControlManager::TWIPR_ControlManager() {
 
 }
@@ -60,19 +58,22 @@ uint8_t TWIPR_ControlManager::start() {
 /* ======================================================== */
 void TWIPR_ControlManager::stop() {
 
-	// Stop the balancing controller
-	this->_balancing_control.stop();
-
-	// Set the own state to idle
-	this->mode = TWIPR_CONTROL_MODE_OFF;
-
-	// Set the input to 0
-	this->_resetExternalInput();
+	this->setMode(TWIPR_CONTROL_MODE_OFF);
 
 }
 /* ======================================================== */
 void TWIPR_ControlManager::reset() {
-	twipr_error_handler(0);
+	this->_balancing_control.reset();
+	this->_speed_control.reset();
+	this->_error_velocity_integral = 0;
+	this->_resetExternalInput();
+}
+
+bool TWIPR_ControlManager::enableSpeedIntegralControl(bool state){
+	this->control_config.vic_enabled = state;
+	this->_error_velocity_integral = 0;
+
+	return true;
 }
 
 /* ======================================================== */
@@ -115,8 +116,6 @@ void TWIPR_ControlManager::update() {
 			break;
 		}
 		case (TWIPR_CONTROL_MODE_VELOCITY): {
-//			control_output = this->_step_balancing(_external_input,
-//								_dynamic_state);
 			control_output = this->_step_velocity(_external_input,
 					_dynamic_state);
 			break;
@@ -167,7 +166,7 @@ uint8_t TWIPR_ControlManager::setMode(twipr_control_mode_t mode) {
 	// Switch the mode of the balancing controller to the appropriate mode
 	switch (mode) {
 	case TWIPR_CONTROL_MODE_OFF: {
-		this->stop();
+		this->_balancing_control.stop();
 		break;
 	}
 	case TWIPR_CONTROL_MODE_DIRECT: {
@@ -195,8 +194,8 @@ uint8_t TWIPR_ControlManager::setMode(twipr_control_mode_t mode) {
 	}
 	}
 
-	// Reset the input
-	this->_resetExternalInput();
+
+	this->reset();
 
 	bool mode_changed = false;
 
@@ -206,7 +205,6 @@ uint8_t TWIPR_ControlManager::setMode(twipr_control_mode_t mode) {
 	this->mode = mode;
 
 	if (mode_changed) {
-
 		this->callbacks.mode_change.call(mode);
 	}
 
@@ -236,6 +234,11 @@ void TWIPR_ControlManager::setBalancingInput(
 		return;
 	}
 
+	this->_setBalancingInput(input);
+}
+
+/* ======================================================== */
+void TWIPR_ControlManager::_setBalancingInput(twipr_balancing_control_input_t input) {
 	osSemaphoreAcquire(semaphore_external_input, portMAX_DELAY);
 	this->_external_input.u_balancing_1 = input.u_1;
 	this->_external_input.u_balancing_2 = input.u_2;
@@ -299,12 +302,25 @@ uint8_t TWIPR_ControlManager::setBalancingGain(float *K) {
 
 	this->_balancing_control.set_K(K);
 
+	memcpy(this->control_config.K, K, sizeof(float) * 8);
+
 	return 1;
 }
 /* ======================================================== */
 uint8_t TWIPR_ControlManager::setVelocityControlForwardPID(float *PID) {
 	this->_speed_control.setForwardPID(PID[0], PID[1], PID[2]);
+	this->control_config.forward_kp = PID[0];
+	this->control_config.forward_ki = PID[1];
+	this->control_config.forward_kd = PID[2];
+	return 1;
+}
 
+/* ======================================================== */
+uint8_t TWIPR_ControlManager::setVelocityControlForwardPID(float Kp, float Ki, float Kd) {
+	this->_speed_control.setForwardPID(Kp, Ki, Kd);
+	this->control_config.forward_kp = Kp;
+	this->control_config.forward_ki = Ki;
+	this->control_config.forward_kd = Kd;
 	return 1;
 }
 
@@ -312,14 +328,36 @@ uint8_t TWIPR_ControlManager::setVelocityControlForwardPID(float *PID) {
 uint8_t TWIPR_ControlManager::setVelocityControlTurnPID(float *PID) {
 	this->_speed_control.setTurnPID(PID[0], PID[1], PID[2]);
 
+	this->control_config.turn_kp = PID[0];
+	this->control_config.turn_ki = PID[1];
+	this->control_config.turn_kd = PID[2];
+
 	return 1;
+}
+
+/* ======================================================== */
+uint8_t TWIPR_ControlManager::setVelocityControlTurnPID(float Kp, float Ki, float Kd) {
+	this->_speed_control.setTurnPID(Kp, Ki, Kd);
+	this->control_config.turn_kp = Kp;
+	this->control_config.turn_ki = Ki;
+	this->control_config.turn_kd = Kd;
+	return 1;
+}
+
+/* ======================================================== */
+bool TWIPR_ControlManager::setControlConfiguration(twipr_control_configuration_t config){
+	this->control_config = config;
+	this->setBalancingGain(config.K);
+	this->setVelocityControlForwardPID(config.forward_kp, config.forward_ki, config.forward_kd);
+	this->setVelocityControlTurnPID(config.turn_kp, config.turn_ki, config.turn_kd);
+	this->reset();
+	return true;
 }
 
 /* ======================================================== */
 twipr_control_configuration_t TWIPR_ControlManager::getControlConfiguration() {
 	twipr_control_configuration_t config;
-//	this->_balancing_control.config	.K[1] = -1;
-//	return config;
+
 	memcpy(config.K, this->_balancing_control.config.K, sizeof(float) * 8);
 	config.forward_kp = this->_speed_control.config.forward_config.Kp;
 	config.forward_ki = this->_speed_control.config.forward_config.Ki;
@@ -378,12 +416,49 @@ twipr_control_output_t TWIPR_ControlManager::_step_balancing(
 	twipr_balancing_control_output_t balancing_control_output =
 			this->_update_balancing_control(balancing_control_input, state);
 
-	output.u_left = balancing_control_output.u_1;
-	output.u_right = balancing_control_output.u_2;
+
+	float output_velocity_integral_control = this->_updateVelocityIntegralController(state.v);
+
+
+	output.u_left = balancing_control_output.u_1 + output_velocity_integral_control;
+	output.u_right = balancing_control_output.u_2 + output_velocity_integral_control;
 
 	return output;
 
 }
+
+/* ======================================================== */
+float TWIPR_ControlManager::_updateVelocityIntegralController(float velocity){
+
+	if (this->control_config.vic_enabled == false){
+		return 0;
+	}
+
+	if (this->control_config.vic_v_limit != 0){
+		if (abs(velocity) > this->control_config.vic_v_limit){
+			this->_error_velocity_integral = 0;
+			return 0;
+		}
+	}
+
+	// Integrate the error
+	this->_error_velocity_integral += 1/this->config.freq * velocity;
+
+
+	// Max the integral
+	if (this->_error_velocity_integral > this->control_config.vic_max_error){
+		this->_error_velocity_integral = this->control_config.vic_max_error;
+	}
+	else if (this->_error_velocity_integral < - this->control_config.vic_max_error){
+		this->_error_velocity_integral = -this->control_config.vic_max_error;
+	}
+
+	// Calculate the return value
+	float output = this->_error_velocity_integral * this->control_config.vic_ki;
+
+	return output;
+}
+
 /* ======================================================== */
 twipr_control_output_t TWIPR_ControlManager::_step_velocity(
 		twipr_control_external_input_t input, twipr_estimation_state_t state) {
@@ -431,7 +506,6 @@ twipr_speed_control_output_t TWIPR_ControlManager::_update_velocity_control(
 /* ======================================================== */
 twipr_balancing_control_output_t TWIPR_ControlManager::_update_balancing_control(
 		twipr_balancing_control_input_t input, twipr_estimation_state_t state) {
-	//	 Calculate the input from the balancing controller
 
 	twipr_balancing_control_output_t output = { 0, 0 };
 
@@ -445,7 +519,7 @@ void TWIPR_ControlManager::_setTorque(twipr_control_output_t output) {
 	// Limit the maximum torque
 
 	// Apply the torque to the motors
-	twipr_drive_can_input_t drive_input = { .torque_left = output.u_left,
+	bilbo_drive_input_t drive_input = { .torque_left = output.u_left,
 			.torque_right = output.u_right };
 
 	this->config.drive->setTorque(drive_input);
@@ -478,4 +552,12 @@ void TWIPR_ControlManager::_resetExternalInput() {
 void TWIPR_ControlManager::_resetOutput() {
 	this->_output.u_left = 0;
 	this->_output.u_right = 0;
+}
+
+
+
+void stopControl(){
+	if (manager){
+		manager->stop();
+	}
 }

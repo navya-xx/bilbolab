@@ -3,9 +3,10 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
+from extensions.simulation.src.core.environment import BASE_ENVIRONMENT_ACTIONS
 from extensions.simulation.src.core.scheduling import Action
 from extensions.simulation.src.objects.bilbo import BILBO_DynamicAgent, BILBO_SMALL, DEFAULT_BILBO_MODEL
-from extensions.simulation.src.objects.base_environment import BaseEnvironment, BASE_ENVIRONMENT_ACTIONS
+from extensions.simulation.src.objects.base_environment import BaseEnvironment
 from extensions.babylon.babylon import BabylonVisualization
 from extensions.babylon.objects.objects import BILBO, Floor, Obstacle
 from utils.keyboard import ArrowKeys

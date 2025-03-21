@@ -1,29 +1,33 @@
+import ctypes
+
 from core.communication.serial.serial_interface import Serial_Interface, SerialMessage
 import robot.lowlevel.stm32_addresses as addresses
 from robot.communication.serial.bilbo_serial_messages import BILBO_SERIAL_MESSAGES
 from robot.lowlevel.stm32_general import twipr_firmware_revision
 from robot.lowlevel.stm32_messages import *
-from utils.callbacks import callback_handler, CallbackContainer
+from utils.callbacks import callback_handler, CallbackContainer, OPTIONAL
 from utils.ctypes_utils import CType
-from utils.events import ConditionEvent
+from utils.events import ConditionEvent, event_handler
 from utils.logging_utils import Logger
 
 logger = Logger("BILBO SERIAL")
 logger.setLevel("INFO")
 
+
 # === CALLBACKS ========================================================================================================
 @callback_handler
 class BILBO_Serial_Communication_Callbacks:
     rx: CallbackContainer
-    event: CallbackContainer
+    event: CallbackContainer(parameters=[('messages', list, OPTIONAL)])
     error: CallbackContainer
     debug: CallbackContainer
 
 
 # === EVENTS ===========================================================================================================
+@event_handler
 class BILBO_Serial_Communication_Events:
     rx: ConditionEvent
-    event: ConditionEvent
+    event = ConditionEvent(flags=[('type', type)])
     error: ConditionEvent
     debug: ConditionEvent
 
@@ -38,7 +42,7 @@ class BILBO_Serial_Communication:
         self.interface.callbacks.rx.register(self._rx_callback)
         self.interface.callbacks.event.register(self._rx_event_callback)
         self.callbacks = BILBO_Serial_Communication_Callbacks()
-
+        self.events = BILBO_Serial_Communication_Events()
         self.interface.addMessage(BILBO_SERIAL_MESSAGES)
 
     # === METHODS ======================================================================================================
@@ -90,13 +94,17 @@ class BILBO_Serial_Communication:
                                 data=state,
                                 input_type=ctypes.c_uint8)
 
-    # ------------------------------------------------------------------------------------------------------------------
-
     # === PRIVATE METHODS ==============================================================================================
     def _rx_callback(self, message: SerialMessage, *args, **kwargs):
         pass
         # message.executeCallback()
 
     def _rx_event_callback(self, message: SerialMessage, *args, **kwargs):
-        # logger.info(f"got a message of type {type(message)}")
-        pass
+        for callback in self.callbacks.event:
+            if callback.parameters['messages'] is not None:
+                if type(message) in callback.parameters['messages']:
+                    callback(message)
+            else:
+                callback(message)
+
+        self.events.event.set(resource=message, flags={'type': type(message)})

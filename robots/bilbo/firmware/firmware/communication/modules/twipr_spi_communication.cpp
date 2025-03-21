@@ -56,6 +56,10 @@ void TWIPR_SPI_Communication::init(twipr_spi_comm_config_t config) {
         core_utils_Callback<void, void>(this, &TWIPR_SPI_Communication::tx_cmplt_function)
     );
 
+    this->_samples_read = false;
+
+
+
     // The RXTX callback and command buffer settings are currently commented out.
     // Uncomment and configure if full-duplex command processing is required.
     // this->spi_slave.registerCallback(CORE_HARDWARE_SPI_CALLBACK_RXTX,
@@ -77,41 +81,33 @@ void TWIPR_SPI_Communication::start() {
     // Start the SPI slave.
     this->spi_slave.start();
     // Provide initial sample data for transmission.
-    this->provideSampleData();
+    this->startListeningForCommand();
+//    this->provideSampleData();
 }
 
-/**
- * @brief Register a callback for SPI communication events.
- *
- * This function allows registration of callbacks for either sample
- * transmission complete or trajectory reception events.
- *
- * @param callback_id Identifier for the callback type.
- * @param callback The callback function to be registered.
- */
-void TWIPR_SPI_Communication::registerCallback(
-    twipr_spi_comm_callback_id_t callback_id,
-    core_utils_Callback<void, uint16_t> callback) {
-    switch (callback_id) {
-        case TWIPR_SPI_COMM_CALLBACK_SAMPLE_TX: {
-            this->callbacks.sample_tx_callback = callback;
-            break;
-        }
-        case TWIPR_SPI_COMM_CALLBACK_TRAJECTORY_RX: {
-            this->callbacks.trajectory_rx_callback = callback;
-            break;
-        }
-    }
+
+void TWIPR_SPI_Communication::reset(){
+
+	this->spi_slave.reset();
+
+	this->startListeningForCommand();
+
 }
 
-/*
-// The following function is commented out. It may be used in the future to
-// listen for specific command messages over SPI.
-// void TWIPR_SPI_Communication::listenForCommand() {
-//     this->mode = TWIPR_SPI_COMM_MODE_NONE;
-//     this->spi_slave.receiveTransmitData(this->_commandBuffer, tx_cmd_buf, TWIPR_SPI_COMMAND_MESSAGE_LENGTH);
-// }
-*/
+void TWIPR_SPI_Communication::startListeningForCommand(){
+	this->_commandBuffer[0] = 0;
+	this->_commandBuffer[1] = 0;
+	this->_commandBuffer[2] = 0;
+	this->_commandBuffer[3] = 0;
+
+	this->_trajectory_length = 0;
+	this->_samples_read = false;
+
+	this->mode = TWIPR_SPI_COMM_MODE_LISTENING_FOR_COMMAND;
+	this->spi_slave.receiveData(this->_commandBuffer, TWIPR_SPI_COMMAND_MESSAGE_LENGTH);
+}
+
+
 
 /**
  * @brief Provide sample data using the default configuration.
@@ -120,7 +116,11 @@ void TWIPR_SPI_Communication::registerCallback(
  * default sample buffer and length provided in the configuration.
  */
 void TWIPR_SPI_Communication::provideSampleData() {
-    this->provideSampleData(this->config.sample_buffer, this->config.len_sample_buffer);
+
+    this->spi_slave.provideData(
+        (uint8_t*) this->config.sample_buffer,
+        sizeof(twipr_logging_sample_t) * this->config.len_sample_buffer
+    );
 }
 
 /**
@@ -132,32 +132,15 @@ void TWIPR_SPI_Communication::provideSampleData() {
  */
 void TWIPR_SPI_Communication::receiveTrajectoryInputs(uint16_t steps) {
     // Calculate the total size of the data to receive.
+	send_info("Waiting for trajectory with %d steps", steps);
+	this->_trajectory_length = steps;
     this->spi_slave.receiveData(
         (uint8_t*) this->config.sequence_buffer,
         sizeof(twipr_sequence_input_t) * steps
     );
 }
 
-/**
- * @brief Provide sample data for transmission over SPI.
- *
- * Sets the communication mode to transmit and provides the sample data from
- * the given buffer with the specified length.
- *
- * @param sample_buffer Pointer to the sample data buffer.
- * @param len Number of samples to be transmitted.
- */
-void TWIPR_SPI_Communication::provideSampleData(
-    twipr_logging_sample_t *sample_buffer, uint16_t len) {
 
-    // Set the communication mode to TX (transmit).
-    this->mode = TWIPR_SPI_COMM_MODE_TX;
-    // Provide the data to the SPI slave for transmission.
-    this->spi_slave.provideData(
-        (uint8_t*) sample_buffer,
-        sizeof(twipr_logging_sample_t) * len
-    );
-}
 
 /**
  * @brief SPI receive complete callback.
@@ -167,10 +150,15 @@ void TWIPR_SPI_Communication::provideSampleData(
  * of the sequence buffer.
  */
 void TWIPR_SPI_Communication::rx_cmplt_function() {
-    if (this->callbacks.trajectory_rx_callback.registered) {
-        // Pass the length of the sequence buffer to the registered callback.
-        this->callbacks.trajectory_rx_callback.call(this->config.len_sequence_buffer);
-    }
+
+	if (this->mode == TWIPR_SPI_COMM_MODE_LISTENING_FOR_COMMAND){
+		this->_handleCommand();
+
+	} else if (this->mode == TWIPR_SPI_COMM_MODE_RX_TRAJECTORY){
+		this->mode = TWIPR_SPI_COMM_MODE_LISTENING_FOR_COMMAND;
+		this->startListeningForCommand();
+		this->callbacks.trajectory_received.call(this->_trajectory_length);
+	}
 }
 
 /**
@@ -182,18 +170,36 @@ void TWIPR_SPI_Communication::rx_cmplt_function() {
  */
 void TWIPR_SPI_Communication::tx_cmplt_function() {
     // Execute the TX callback if one is registered.
-    if (this->callbacks.sample_tx_callback.registered) {
-        this->callbacks.sample_tx_callback.call(this->_len);
-    }
-    // Provide new sample data for continuous transmission.
-    this->provideSampleData();
+
+	if (this->mode == TWIPR_SPI_COMM_MODE_TX_SAMPLES){
+		this->mode = TWIPR_SPI_COMM_MODE_LISTENING_FOR_COMMAND;
+		this->startListeningForCommand();
+		this->callbacks.samples_transmitted.call();
+	}
 }
 
-/**
- * @brief Stop the SPI transmission.
- *
- * Aborts any ongoing SPI transmission using the hardware SPI handle.
- */
-void TWIPR_SPI_Communication::stopTransmission() {
-    HAL_SPI_Abort(this->config.hspi);
+
+void TWIPR_SPI_Communication::_handleCommand() {
+
+	if (this->_commandBuffer[0] != 0x66){
+		send_error("SPI Command Header wrong: %d, %d, %d, %d", this->_commandBuffer[0], this->_commandBuffer[1],this->_commandBuffer[2],this->_commandBuffer[3]);
+		this->startListeningForCommand();
+		return;
+	}
+
+	uint8_t command = this->_commandBuffer[1];
+	uint16_t length = bytearray_to_uint16(&this->_commandBuffer[2]);
+
+
+	if (command == TWIPR_SPI_COMMAND_SAMPLES_READ){
+		this->_samples_read = 0;
+		this->mode = TWIPR_SPI_COMM_MODE_TX_SAMPLES;
+		this->provideSampleData();
+
+	} else if (command == TWIPR_SPI_COMMAND_TRAJECTORY_WRITE){
+		this->_trajectory_length = length;
+		this->mode = TWIPR_SPI_COMM_MODE_RX_TRAJECTORY;
+		this->receiveTrajectoryInputs(length);
+	}
+
 }

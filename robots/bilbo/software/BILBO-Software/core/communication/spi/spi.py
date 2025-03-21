@@ -8,7 +8,7 @@ class SPI_Interface:
     spi: board.SPI
 
     # ------------------------------------------------------------------------------------------------------------------
-    def __init__(self, notification_pin: int = None, baudrate: int = 10_000_000):
+    def __init__(self, notification_pin: int = None, baudrate: int = 40_000_000):
         self.notification_pin = notification_pin
 
         self.spi = board.SPI()
@@ -18,7 +18,7 @@ class SPI_Interface:
 
     # ------------------------------------------------------------------------------------------------------------------
     def send(self, data: bytearray):
-
+        # print(f'SPI: Sending {len(data)} bytes: {data}')
         if isinstance(data, list):
             data = bytearray(data)
 

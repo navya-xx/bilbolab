@@ -14,7 +14,6 @@
 #define COMMUNICATION_TWIPR_UART_COMMUNICATION_H_
 
 #include "core.h"
-#include "twipr_messages.h"
 
 // Define the UART communication queue and buffer sizes.
 #define TWIPR_UART_COMM_QUEUE_SIZE 10
@@ -29,6 +28,17 @@
 #define MSG_COMMAND_MSG     0x06 ///< Command code for general messages.
 #define MSG_COMMAND_FCT     0x07 ///< Command code for function execution.
 #define MSG_COMMAND_ECHO    0x08 ///< Command code for echo testing.
+
+
+typedef enum serial_message_type_t {
+	MSG_WRITE = MSG_COMMAND_WRITE,
+	MSG_READ = MSG_COMMAND_READ,
+	MSG_ANSWER = MSG_COMMAND_ANSWER,
+	MSG_STREAM = MSG_COMMAND_STREAM,
+	MSG_EVENT = MSG_COMMAND_EVENT,
+	MSG_FCT = MSG_COMMAND_FCT,
+	MSG_ECHO = MSG_COMMAND_ECHO
+} serial_message_type_t;
 
 //------------------------------------------------------------------------------
 // UART Communication Configuration

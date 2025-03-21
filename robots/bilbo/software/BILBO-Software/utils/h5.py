@@ -163,9 +163,7 @@ class H5PyDictLogger:
         holding the lock only during each batch retrieval. This avoids holding the lock for too long,
         which helps if your logging (or other operations) needs to run concurrently.
         """
-        import numpy as np
-
-        # Case 1: Single sample access
+        # Case 1: Single sample access.
         if isinstance(index, int):
             with self.lock:
                 if signal is not None:
@@ -173,7 +171,6 @@ class H5PyDictLogger:
                 else:
                     data = self.dataset[index]
             if signal is not None:
-                # Convert the structured sample to a dict
                 if isinstance(data, np.void) or (hasattr(data, "dtype") and data.shape == ()):
                     return {key: data[key] for key in data.dtype.names}
                 else:
@@ -181,49 +178,36 @@ class H5PyDictLogger:
             return data
 
         # Case 2: Slice access – process indices in batches.
-        # Determine slice boundaries (defaulting if not provided)
         start = index.start if index.start is not None else 0
         stop = index.stop if index.stop is not None else len(self.dataset)
         step = index.step if index.step is not None else 1
-
-        # Create a list of indices for the slice.
         indices = list(range(start, stop, step))
         total_samples = len(indices)
 
-        # If signal is provided, prepare a dict to accumulate data per field.
-        if signal is not None:
-            # Determine field names by reading one sample (if available)
-            if total_samples == 0:
-                return {}  # or handle an empty slice as needed
-            with self.lock:
-                sample_dtype = self.dataset[indices[0]].dtype
-            merged = {key: [] for key in sample_dtype.names}
-
-            # Process the indices in batches.
-            for i in range(0, total_samples, batch_size):
-                batch_indices = indices[i:i + batch_size]
-                with self.lock:
-                    # Retrieve the batch, then select only the specified fields
-                    batch_data = self.dataset[batch_indices]
-                    batch_data = batch_data[signal]
-                # Depending on whether the batch is a single record or multiple, convert accordingly.
-                if batch_data.shape == ():
-                    for key in merged:
-                        merged[key].append(batch_data[key])
-                else:
-                    for key in merged:
-                        merged[key].extend(batch_data[key].tolist())
-            return merged
-        else:
-            # If no signal is provided, just accumulate batches and concatenate them.
+        if signal is None:
             batches = []
             for i in range(0, total_samples, batch_size):
                 batch_indices = indices[i:i + batch_size]
-                print('batch')
                 with self.lock:
                     batch_data = self.dataset[batch_indices]
                 batches.append(batch_data)
             return np.concatenate(batches)
+        else:
+            # Initialize the result dict for each field in signal.
+            result = {field: [] for field in signal}
+            for i in range(0, total_samples, batch_size):
+                batch_indices = indices[i:i + batch_size]
+                with self.lock:
+                    # Retrieve only the specified fields.
+                    batch_data = self.dataset[batch_indices][signal]
+                # Ensure batch_data is always an array.
+                if batch_data.shape == ():
+                    batch_data = np.array([batch_data], dtype=batch_data.dtype)
+                for field in signal:
+                    # Extend the list with values from this batch.
+                    result[field].extend(batch_data[field].tolist())
+            return result
+
 
     def close(self):
         """

@@ -4,13 +4,14 @@ import time
 
 from extensions.cli.src.cli import CommandSet, Command, CommandArgument
 from extensions.joystick.joystick_manager import JoystickManager, Joystick
-from robots.bilbo.twipr import BILBO
-from robots.bilbo.twipr_manager import BILBO_Manager
+from robots.bilbo.bilbo import BILBO
+from robots.bilbo.bilbo_manager import BILBO_Manager
 from robots.bilbo.utils.twipr_data import TWIPR_Control_Mode
 from utils.callbacks import callback_handler, CallbackContainer
+from utils.events import event_handler, ConditionEvent
 from utils.logging_utils import Logger
 
-from robots.bilbo.twipr_definitions import *
+from robots.bilbo.bilbo_definitions import *
 
 LIMIT_TORQUE_FORWARD_DEFAULT = 1
 LIMIT_TORQUE_TURN_DEFAULT = 1
@@ -27,6 +28,12 @@ class TWIPRJoystickControlCallbacks:
     new_joystick: CallbackContainer
     joystick_disconnected: CallbackContainer
 
+@event_handler
+class TWIPRJoystickControlEvents:
+    new_assignment: ConditionEvent
+    assigment_removed: ConditionEvent
+    new_joystick: ConditionEvent
+    joystick_disconnected: ConditionEvent
 
 @dataclasses.dataclass
 class JoystickAssignment:
@@ -34,8 +41,8 @@ class JoystickAssignment:
     robot: BILBO
 
 
-class TWIPR_JoystickControl:
-    twipr_manager: BILBO_Manager
+class BILBO_JoystickControl:
+    bilbo_manager: BILBO_Manager
     joystick_manager: JoystickManager
     limits: dict
     assignments: dict[str, JoystickAssignment]
@@ -47,13 +54,13 @@ class TWIPR_JoystickControl:
     _exit: bool
 
     # ==================================================================================================================
-    def __init__(self, twipr_manager: BILBO_Manager, thread=False):
-        self.twipr_manager = twipr_manager
+    def __init__(self, bilbo_manager: BILBO_Manager, run_in_thread=False):
+        self.bilbo_manager = bilbo_manager
 
         self.joystick_manager = JoystickManager()
-        self._run_in_thread = thread
+        self._run_in_thread = run_in_thread
 
-        self.twipr_manager.callbacks.robot_disconnected.register(self._robotDisconnected_callback)
+        self.bilbo_manager.callbacks.robot_disconnected.register(self._robotDisconnected_callback)
         self.joystick_manager.callbacks.new_joystick.register(self._newJoystick_callback)
         self.joystick_manager.callbacks.joystick_disconnected.register(self._joystickDisconnected_callback)
 
@@ -71,6 +78,9 @@ class TWIPR_JoystickControl:
         self.assignments = {}
 
         self.callbacks = TWIPRJoystickControlCallbacks()
+        self.events = TWIPRJoystickControlEvents()
+
+        self.cli_command_set = TWIPR_JoystickControl_CommandSet(self)
 
         self._exit = False
 
@@ -98,29 +108,36 @@ class TWIPR_JoystickControl:
             self._thread.join()
 
     # ------------------------------------------------------------------------------------------------------------------
-    def assignJoystick(self, joystick, twipr):
+    def assignJoystick(self, joystick, bilbo):
         if isinstance(joystick, str):
             joystick = self.joystick_manager.getJoystickById(joystick)
             if joystick is None:
                 return
-        if isinstance(twipr, str):
-            twipr = self.twipr_manager.getRobotById(twipr)
-            if twipr is None:
+        if isinstance(bilbo, str):
+            bilbo = self.bilbo_manager.getRobotById(bilbo)
+            if bilbo is None:
                 return
 
-        self.assignments[joystick.id] = JoystickAssignment(joystick, twipr)
-        joystick.setButtonCallback(button=1, event='down', function=twipr.setControlMode,
-                                   parameters={'mode': TWIPR_ControlMode.TWIPR_CONTROL_MODE_BALANCING})
-        joystick.setButtonCallback(button=0, event='down', function=twipr.setControlMode,
-                                   parameters={'mode': TWIPR_ControlMode.TWIPR_CONTROL_MODE_OFF})
-        joystick.setButtonCallback(button=2, event='down', function=twipr.setControlMode,
-                                   parameters={'mode': TWIPR_ControlMode.TWIPR_CONTROL_MODE_VELOCITY})
-        joystick.setButtonCallback(button=4, event='down', function=twipr.beep,
+        self.assignments[joystick.id] = JoystickAssignment(joystick, bilbo)
+
+        joystick.setButtonCallback(button=1, event='down', function=bilbo.control.setControlMode,
+                                   parameters={'mode': BILBO_Control_Mode.BALANCING})
+
+        joystick.setButtonCallback(button=0, event='down', function=bilbo.control.setControlMode,
+                                   parameters={'mode': BILBO_Control_Mode.OFF})
+
+        joystick.setButtonCallback(button=2, event='down', function=bilbo.control.setControlMode,
+                                   parameters={'mode': BILBO_Control_Mode.VELOCITY})
+
+        joystick.setButtonCallback(button=4, event='down', function=bilbo.beep,
                                    parameters={'frequency': 800, 'time_ms': 500, 'repeats': 1})
-        logger.info(f"Assign Joystick: {joystick.id} -> Robot: {twipr.id}")
+
+        bilbo.assets.joystick = joystick
+
+        logger.info(f"Assign Joystick: {joystick.id} -> Robot: {bilbo.id}")
 
         for callback in self.callbacks.new_assignment:
-            callback(joystick, twipr)
+            callback(joystick, bilbo)
 
     # ------------------------------------------------------------------------------------------------------------------
     def unassignJoystick(self, joystick):
@@ -134,6 +151,7 @@ class TWIPR_JoystickControl:
                 self.assignments.pop(key)
                 logger.info(f"Unassign Joystick: {joystick.id} -> Robot: {assignment.robot.id}")
                 joystick.clearAllButtonCallbacks()
+                assignment.robot.assets.joystick = None
 
                 for callback in self.callbacks.assigment_removed:
                     callback(joystick, assignment.robot)
@@ -160,23 +178,19 @@ class TWIPR_JoystickControl:
     # ------------------------------------------------------------------------------------------------------------------
     def _calculateNormalizedTorques(self, assignment: JoystickAssignment) -> list:
         # Read the Joystick axes
-        forward_joystick = -assignment.joystick.axis[1]
-        turn_joystick = -assignment.joystick.axis[2]
+        forward_joystick = -assignment.joystick.getAxis('LEFT_VERTICAL')
+        turn_joystick = -assignment.joystick.getAxis('RIGHT_HORIZONTAL')
 
         # Calculate the commands
         forward_cmd = forward_joystick
         turn_cmd = turn_joystick
 
-        # # Calculate the torques (negative values: forward)
-        # torque_left = -(forward_cmd + turn_cmd)
-        # torque_right = -(forward_cmd - turn_cmd)
-
         return [forward_cmd, turn_cmd]
 
     # ------------------------------------------------------------------------------------------------------------------
     def _calculateSpeeds(self, assignment: JoystickAssignment) -> list:
-        forward_joystick = -assignment.joystick.axis[1]
-        turn_joystick = -assignment.joystick.axis[2]
+        forward_joystick = -assignment.joystick.getAxis('LEFT_VERTICAL')
+        turn_joystick = -assignment.joystick.getAxis('RIGHT_HORIZONTAL')
 
         # Calculate the commands
         v = forward_joystick * self.limits['speed']['forward']
@@ -188,7 +202,7 @@ class TWIPR_JoystickControl:
     def _threadFunction(self):
         while not self._exit:
             self.update()
-            time.sleep(0.1)
+            time.sleep(0.05)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _robotDisconnected_callback(self, robot, *args, **kwargs):
@@ -219,99 +233,112 @@ class TWIPR_JoystickControl_CommandSet(CommandSet):
     name = 'joysticks'
     description = 'Joystick Control of BILBO robots'
 
-    def __init__(self, joystick_control: TWIPR_JoystickControl):
+    def __init__(self, joystick_control: BILBO_JoystickControl):
         super().__init__(name=self.name)
 
         self.joystick_control = joystick_control
 
-        # self.manager.registerCallback('new_robot', self._newRobot_callback)
-        # self.manager.registerCallback('robot_disconnected', self._robotDisconnected_callback)
+        list_joysticks_command = Command(name='lj',
+                                callback=self._list_joysticks,
+                                allow_positionals=False,
+                                description='Beeps the Buzzer')
 
-        self.addCommand(TWIPR_JoystickControl_Command_List(self.joystick_control))
-        self.addCommand(TWIPR_JoystickControl_Command_Assign(self.joystick_control))
-        self.addCommand(TWIPR_JoystickControl_Command_Unassign(self.joystick_control))
-        # self.addCommand(TWIPR_Manager_Command_List(self.manager))
-        # self.addCommand(TWIPR_Manager_Command_Stop(self.manager))
-        # self.addCommand(TWIPR_Manager_Command_Mode(self.manager))
+        rumble_command = Command(name='rumble',
+                                callback=self._rumble_joystick,
+                                allow_positionals=True,
+                                arguments=[
+                                     CommandArgument(name='id',
+                                                     short_name='i',
+                                                     type=int,
+                                                     description='ID of the joystick',
+                                                     optional=False,
+                                                     ),
+                                 ],
+                                description='Rumbles the given joystick')
 
-    def _newRobot_callback(self, robot, *args, **kwargs):
-        ...
+        assign_command = Command(name='assign',
+                                callback=self._assign_joystick,
+                                allow_positionals=True,
+                                arguments=[
+                                     CommandArgument(name='id',
+                                                     short_name='i',
+                                                     type=int,
+                                                     description='ID of the joystick',
+                                                     optional=False,
+                                                     ),
+                                    CommandArgument(name='agent',
+                                                    short_name='a',
+                                                    type=str,
+                                                    description='ID of the robot',
+                                                    optional=False,
+                                                    ),
+                                 ],
+                                description='Rumbles the given joystick')
 
-    def _robotDisconnected_callback(self, robot, *args, **kwargs):
-        ...
-
-
-# ======================================================================================================================
-class TWIPR_JoystickControl_Command_List(Command):
-    description = 'Lists all connected Joysticks'
-    name = 'list'
-    joystick_control: TWIPR_JoystickControl
-    arguments = {
-    }
-
-    def __init__(self, joystick_control: TWIPR_JoystickControl):
-        super().__init__(name=self.name, callback=None, description=self.description)
-        self.joystick_control = joystick_control
-
-    def function(self, *args, **kwargs):
-        ...
-
-
-class TWIPR_JoystickControl_Command_Assign(Command):
-    description = 'Assigns a Joystick to a BILBO'
-    name = 'assign'
-    joystick_control: TWIPR_JoystickControl
-    arguments = {
-        'joystick': CommandArgument(
-            name='joystick',
-            type=str,
-            short_name='j',
-            description='ID of the Joystick to assign',
-            is_flag=False,
-        ),
-        'robot': CommandArgument(
-            name='robot',
-            type=str,
-            short_name='r',
-            description='ID of the robot to assign',
-            is_flag=False,
-        )
-    }
-
-    def __init__(self, joystick_control: TWIPR_JoystickControl):
-        super().__init__(name=self.name, callback=None, description=self.description)
-        self.joystick_control = joystick_control
-
-    def function(self, *args, **kwargs):
-        ...
+        unassign_command = Command(name='unassign',
+                                   callback=self._unassign_joystick,
+                                   allow_positionals=True,
+                                   arguments=[
+                                       CommandArgument(name='id',
+                                                       short_name='i',
+                                                       type=int,
+                                                       description='ID of the joystick',
+                                                       optional=True,
+                                                       default=None
+                                                       ),
+                                       CommandArgument(name='all',
+                                                       is_flag=True,
+                                                       type=bool,
+                                                       description='Unassign all joysticks',
+                                                       default=False)
+                                   ],)
 
 
-class TWIPR_JoystickControl_Command_Unassign(Command):
-    description = 'Unassigns a joystick from a robot. If not arguments are given, it unassigns all.'
-    name = 'unassign'
-    joystick_control: TWIPR_JoystickControl
-    arguments = {
-        'joystick': CommandArgument(
-            name='joystick',
-            type=str,
-            short_name='j',
-            description='ID of the Joystick to unassign',
-            optional=True,
-            default=None,
-        ),
-        'robot': CommandArgument(
-            name='robot',
-            type=str,
-            short_name='r',
-            description='ID of the robot to unassign',
-            optional=True,
-            default=None
-        )
-    }
 
-    def __init__(self, joystick_control: TWIPR_JoystickControl):
-        super().__init__(name=self.name, callback=None, description=self.description)
-        self.joystick_control = joystick_control
+        super().__init__(name=f"joysticks", commands=[list_joysticks_command,
+                                                      rumble_command,
+                                                      assign_command,
+                                                      unassign_command],
+                         child_sets=[])
 
-    def function(self, *args, **kwargs):
-        ...
+
+    def _list_joysticks(self):
+        output = ''
+        for joystick in self.joystick_control.joystick_manager.joysticks.values():
+            output += f"{joystick.id}: {joystick.name}\n"
+        return output
+
+    def _rumble_joystick(self, id: int):
+        joystick = self.joystick_control.joystick_manager.getJoystickById((id))
+        if joystick is None:
+            return f"Joystick with ID {id} not found"
+        joystick.rumble(strength=0.3, duration=300)
+
+    def _assign_joystick(self, id: int, agent: str):
+        joystick = self.joystick_control.joystick_manager.getJoystickById((id))
+        if joystick is None:
+            return f"Joystick with ID {id} not found"
+        joystick.rumble(strength=0.3, duration=300)
+
+        agent = self.joystick_control.bilbo_manager.getRobotById(agent)
+        if agent is None:
+            return f"Agent with ID {agent} not found"
+
+        self.joystick_control.assignJoystick(joystick, agent)
+
+    def _unassign_joystick(self, id: int = None, all: bool = False):
+
+        if id and all:
+            return f"Cannot assign joystick {id} and unassign all at the same time"
+
+        if id:
+            joystick = self.joystick_control.joystick_manager.getJoystickById((id))
+            if joystick is None:
+                return f"Joystick with ID {id} not found"
+
+            self.joystick_control.unassignJoystick(joystick)
+            return
+
+        if all:
+            for joystick in self.joystick_control.joystick_manager.joysticks.values():
+                self.joystick_control.unassignJoystick(joystick)

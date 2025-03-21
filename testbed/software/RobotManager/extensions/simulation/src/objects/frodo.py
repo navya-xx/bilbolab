@@ -16,8 +16,9 @@ import numpy as np
 from numpy import nan
 
 from extensions.simulation.src import core as core
+from extensions.simulation.src.core.environment import BASE_ENVIRONMENT_ACTIONS
 
-DEFAULT_SAMPLE_TIME = 0.02
+# DEFAULT_SAMPLE_TIME = 0.1
 
 
 class FRODO_InputSpace(core.spaces.Space):
@@ -46,10 +47,23 @@ class FRODO_Dynamics(core.dynamics.Dynamics):
     Updates the 2D position and orientation based on input.
     """
 
+    input_space = FRODO_InputSpace()
+    state_space = core.spaces.Space2D()
+    output_space = core.spaces.Space2D()
+
+    def init(self):
+        pass
+
     # NOTE: The sample time is now provided via the constructor.
-    def __init__(self, Ts=DEFAULT_SAMPLE_TIME, *args, **kwargs):
+    def __init__(self, Ts, *args, **kwargs):
         self.Ts = Ts
+        self.input = self.input_space.getState()
         super().__init__(*args, **kwargs)
+
+    def update(self, input=None):
+        if input is not None:
+            self.input = input
+        self.state = self._dynamics(self.state, self.input)
 
     def _dynamics(self, state: core.spaces.State, input: core.spaces.State, *args, **kwargs):
         # Update position using current speed and heading.
@@ -59,7 +73,7 @@ class FRODO_Dynamics(core.dynamics.Dynamics):
         return state
 
     def _output(self, state: core.spaces.State):
-        output = self.spaces.output_space.getState()
+        output = self.output_space.getState()
         output['pos']['x'] = state['pos']['x']
         output['pos']['y'] = state['pos']['y']
         output['psi'] = state['psi']
@@ -101,6 +115,32 @@ class FRODO_PhysicalObject(core.physics.PhysicalBody):
 
     def _getProximitySphereRadius(self):
         return (np.sqrt(self.length ** 2 + self.width ** 2 + self.height ** 2) / 2) * 1.1
+
+
+class FRODO_DynamicAgent(core.agents.DynamicAgent):
+    object_type: str = 'frodo_agent'
+    space = core.spaces.Space2D()
+    dynamics: FRODO_Dynamics
+    input_space = FRODO_InputSpace()
+
+    def __init__(self, agent_id, Ts, *args, **kwargs):
+        self.Ts = Ts
+        self.dynamics = FRODO_Dynamics(Ts=Ts)
+
+        super().__init__(agent_id, *args, **kwargs)
+
+        self.scheduling.actions[BASE_ENVIRONMENT_ACTIONS.LOGIC].addAction(self._control)
+
+    @property
+    def input(self):
+        return self._input
+
+    @input.setter
+    def input(self, value):
+        self._input = self.input_space.map(value)
+
+    def _control(self):
+        self.dynamics.input = self.input
 
 
 class FRODO_SimObject(core.dynamics.DynamicObject):

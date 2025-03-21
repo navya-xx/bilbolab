@@ -3,13 +3,9 @@ import extensions.simulation.src.core.dynamics as dynamics
 import extensions.simulation.src.core.spaces as spaces
 
 
-# # TODO: Make the agent group
-# class AgentGroup(environment.ObjectGroup):
-#     ...
-
-
 class Agent(environment.Object):
     agent_id: str
+
     # agent_group: AgentGroup
 
     def __init__(self, agent_id: str,

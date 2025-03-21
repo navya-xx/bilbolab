@@ -35,12 +35,12 @@ void TWIPR_Estimation::start() {
 }
 /* ======================================================= */
 void TWIPR_Estimation::reset() {
-	twipr_error_handler(0);
+
 }
 /* ======================================================= */
 void TWIPR_Estimation::task_function() {
 
-	this->_orientation_fusion.begin((float) TWIPR_ESTIMATION_FREQUENCY);
+//	this->_orientation_fusion.begin((float) TWIPR_ESTIMATION_FREQUENCY);
 	this->status = TWIPR_ESTIMATION_STATUS_OK;
 //	this->_sensors.calibrate();
 	uint32_t ticks;
@@ -53,7 +53,7 @@ void TWIPR_Estimation::task_function() {
 }
 /* ======================================================= */
 void TWIPR_Estimation::stop() {
-	twipr_error_handler(0);
+
 }
 /* ======================================================= */
 void TWIPR_Estimation::update() {
@@ -65,8 +65,8 @@ void TWIPR_Estimation::update() {
 	twipr_sensors_data_t data = this->config.sensors->getData();
 
 	// Orientation Estimation
-	this->_orientation_fusion.updateIMU(data.gyr.x, data.gyr.y, data.gyr.z,
-			data.acc.x, data.acc.y, data.acc.z);
+//	this->_orientation_fusion.updateIMU(data.gyr.x, data.gyr.y, data.gyr.z,
+//			data.acc.x, data.acc.y, data.acc.z);
 
 	vqf_real_t gyr[3] = { data.gyr.x, data.gyr.y, data.gyr.z };
 	vqf_real_t acc[3] = { data.acc.x, data.acc.y, data.acc.z };
@@ -92,15 +92,15 @@ void TWIPR_Estimation::update() {
 	data.speed_right += theta_dot;
 	// Get the speed and yaw speed
 	float v = ((data.speed_left + data.speed_right) / 2 )
-			* this->config.model.r_wheel;
+			* WHEEL_DIAMETER/2;
 
 	float psi_dot = (data.speed_right - data.speed_left)
-			* this->config.model.r_wheel / this->config.model.distance_wheels;
+			* (WHEEL_DIAMETER/2) / WHEEL_DISTANCE;
 
 	// Set the current state
 	osSemaphoreAcquire(_semaphore, portMAX_DELAY);
 	this->state.v = v;
-	this->state.theta = theta;
+	this->state.theta = theta + this->_theta_offset;
 	this->state.theta_dot = theta_dot;
 	this->state.psi = 0;
 	this->state.psi_dot = psi_dot;
@@ -139,6 +139,12 @@ void TWIPR_Estimation::update() {
 	}
 
 }
+
+/* ======================================================= */
+bool TWIPR_Estimation::setThetaOffset(float offset){
+	this->_theta_offset = offset;
+	return true;
+}
 /* ======================================================= */
 twipr_estimation_state_t TWIPR_Estimation::getMeanState() {
 	twipr_estimation_state_t out;
@@ -156,7 +162,8 @@ twipr_estimation_state_t TWIPR_Estimation::getState() {
 }
 /* ======================================================= */
 void TWIPR_Estimation::setState(twipr_estimation_state_t state) {
-	twipr_error_handler(0);
+
+//	twipr_error_handler(0);
 }
 /* ======================================================= */
 twipr_logging_estimation_t TWIPR_Estimation::getSample() {

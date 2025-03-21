@@ -1,8 +1,12 @@
+import ctypes
 import dataclasses
 import enum
 
+import robot.lowlevel.stm32_addresses as addresses
 from robot.communication.bilbo_communication import BILBO_Communication
+from robot.hardware import get_hardware_definition
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample
+from utils.logging_utils import Logger
 
 
 @dataclasses.dataclass
@@ -51,7 +55,14 @@ class BILBO_Estimation:
         self.mode = TWIPR_Estimation_Mode.TWIPR_ESTIMATION_MODE_VEL
         self._comm.callbacks.rx_stm32_sample.register(self._onSample)
 
+        self.logger = Logger('Estimation')
+        self.logger.setLevel('DEBUG')
+
     # ==================================================================================================================
+    def init(self):
+        hardware_definition = get_hardware_definition()
+        theta_offset = hardware_definition.get('settings', {}).get('theta_offset', 0.0)
+        self.setThetaOffset(theta_offset)
 
     # ------------------------------------------------------------------------------------------------------------------
     def getSample(self) -> TWIPR_Estimation_Sample:
@@ -66,6 +77,27 @@ class BILBO_Estimation:
             'state': dataclasses.asdict(self.state)
         }
         return sample
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def setThetaOffset(self, offset: float):
+        self.logger.info(f'Setting theta offset to {offset}')
+        success = self._comm.serial.executeFunction(
+            module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
+            address=addresses.TWIPR_EstimationAddresses.SET_THETA_OFFSET,
+            data=offset,
+            input_type=ctypes.c_float,
+            output_type=ctypes.c_bool
+        )
+
+        if not success:
+            self.logger.error('Could not set theta offset')
+
+        # self._comm.serial.executeFunction(
+        #     module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
+        #     address=addresses.TWIPR_ControlAddresses.ADDRESS_CONTROL_SET_MODE,
+        #     data=mode.value,
+        #     input_type=ctypes.c_uint8
+        # )
 
     # ==================================================================================================================
     def _update(self):

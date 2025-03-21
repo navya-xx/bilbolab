@@ -10,7 +10,6 @@
 
 #include "core.h"
 #include "twipr_model.h"
-//#include "simplexmotion.hpp"
 #include "twipr_sensors.h"
 #include "vqf.hpp"
 #include "basicvqf.hpp"
@@ -49,10 +48,8 @@ typedef struct twipr_estimation_callbacks {
 } twipr_estimation_callbacks;
 
 typedef struct twipr_estimation_config_t {
-	TWIPR_Drive_CAN* drive;
+	BILBO_Drive* drive;
 	TWIPR_Sensors* sensors;
-//	bool enable_slip_detection;
-	twipr_model_t model;
 } twipr_estimation_config_t;
 
 typedef struct twipr_logging_estimation_t {
@@ -81,6 +78,8 @@ public:
 
 	void setState(twipr_estimation_state_t state);
 
+	bool setThetaOffset(float offset);
+
 	twipr_estimation_status_t getStatus();
 
 	twipr_estimation_status_t status;
@@ -92,8 +91,9 @@ private:
 	twipr_estimation_state_t _state_buffer[TWIPR_ESTIMATION_STATE_BUFFER_SIZE];
 	uint16_t _state_buffer_index = 0;
 	osSemaphoreId_t _semaphore;
-	Madgwick _orientation_fusion;
+//	Madgwick _orientation_fusion;
 	BasicVQF vqf;
+	float _theta_offset = 0;
 
 };
 

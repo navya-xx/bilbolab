@@ -2,14 +2,14 @@ import dataclasses
 import os
 import re
 import shlex
+import inspect
 import utils.colors as colors
 import utils.string as string
-from utils.callbacks import Callback
+from utils.callbacks import Callback, callback_handler, CallbackContainer
 from utils.logging_utils import Logger
 
 logger = Logger('CLI')
 logger.setLevel("INFO")
-os.system("")
 
 
 @dataclasses.dataclass
@@ -85,22 +85,38 @@ class Command:
                     return
                 arg_def = self.arguments[arg_name]
                 try:
-                    # Attempt to convert the positional argument to the expected type.
-                    cast_value = arg_def.type(pos)
-                except Exception:
-                    self.logger.error(
-                        f"Type mismatch for argument '{arg_name}': expected {arg_def.type.__name__} but got value '{pos}'.")
+                    # Use our common typecasting function.
+                    cast_value = self._typecastArgument(arg_def, pos)
+                except Exception as e:
+                    self.logger.error(f"Type mismatch for argument '{arg_name}': {e}")
                     return
                 # Insert the cast value into the keyword_args dictionary.
                 keyword_args[arg_name] = cast_value
             # Clear positional_args since they have been consumed.
             positional_args = []
 
+        # Before filling in missing arguments, try to inspect the callback's default values.
+        cb_signature = None
+        if self.callback is not None:
+            try:
+                cb_func = self.callback.function if hasattr(self.callback, 'function') else self.callback
+                cb_signature = inspect.signature(cb_func)
+            except Exception as e:
+                self.logger.error(f"Error inspecting callback function: {e}")
+
         # Fill in missing optional/default/flag arguments.
         for name, argument in self.arguments.items():
             if argument.optional or argument.default is not None:
                 if argument.name not in keyword_args.keys():
-                    keyword_args[argument.name] = argument.default
+                    # If no default is provided in the argument but the callback function has one, use it.
+                    if argument.default is None and cb_signature is not None and argument.name in cb_signature.parameters:
+                        param = cb_signature.parameters[argument.name]
+                        if param.default is not inspect.Parameter.empty:
+                            keyword_args[argument.name] = param.default
+                        else:
+                            keyword_args[argument.name] = argument.default
+                    else:
+                        keyword_args[argument.name] = argument.default
             elif argument.is_flag:
                 if argument.name not in keyword_args.keys():
                     keyword_args[argument.name] = False
@@ -108,8 +124,23 @@ class Command:
                 if argument.name not in keyword_args.keys():
                     self.logger.error(f"Argument \"{argument.name}\" was not provided")
                     return
+
+        # Map keyword argument keys to their original names (if specified) just before calling the callback.
+        mapped_kwargs = {}
+        for arg in self.arguments.values():
+            if arg.name in keyword_args:
+                final_key = arg.original_name if arg.original_name is not None else arg.name
+                mapped_kwargs[final_key] = keyword_args[arg.name]
         try:
-            return self.function(*positional_args, **keyword_args)
+            log_str = f"Execute command: {self.name} ("
+            if len(positional_args) > 0:
+                log_str += f"*args: {positional_args}, "
+            if len(mapped_kwargs) > 0:
+                log_str += f"**kwargs: {mapped_kwargs})"
+            else:
+                log_str += ")"
+            self.logger.info(log_str)
+            return self.function(*positional_args, **mapped_kwargs)
         except Exception as e:
             self.logger.error(f"Error executing command: {e}")
 
@@ -133,8 +164,7 @@ class Command:
                     return None
                 arg = self.arguments[arg_name]
                 if arg.is_flag:
-                    name = arg.original_name if arg.original_name is not None else arg.name
-                    keyword_args[name] = True
+                    keyword_args[arg.name] = True
                 else:
                     try:
                         value = next(it)
@@ -147,12 +177,10 @@ class Command:
                             if len(values) != arg.array_size:
                                 self.logger.error(f"Argument {arg_name} expects a list of {arg.array_size} values.")
                                 return None
-                            name = arg.original_name if arg.original_name is not None else arg.name
-                            keyword_args[name] = self._typecastArgument(self.arguments[arg_name], values)
+                            keyword_args[arg.name] = self._typecastArgument(self.arguments[arg_name], values)
                         else:
                             value = value.strip('"').strip("'")
-                            name = arg.original_name if arg.original_name is not None else arg.name
-                            keyword_args[name] = self._typecastArgument(self.arguments[arg_name], value)
+                            keyword_args[arg.name] = self._typecastArgument(self.arguments[arg_name], value)
                     except StopIteration:
                         self.logger.error(f"Argument {arg_name} expects a value.")
                         return None
@@ -166,8 +194,7 @@ class Command:
                     self.logger.error(f"Unknown argument: {arg_short_name}")
                     return None
                 if arg.is_flag:
-                    name = arg.original_name if arg.original_name is not None else arg.name
-                    keyword_args[name] = True
+                    keyword_args[arg.name] = True
                 else:
                     try:
                         value = next(it)
@@ -180,12 +207,10 @@ class Command:
                             if len(values) != arg.array_size:
                                 self.logger.error(f"Argument {arg.name} expects a list of {arg.array_size} values.")
                                 return None
-                            name = arg.original_name if arg.original_name is not None else arg.name
-                            keyword_args[name] = self._typecastArgument(self.arguments[arg.name], values)
+                            keyword_args[arg.name] = self._typecastArgument(self.arguments[arg.name], values)
                         else:
                             value = value.strip('"').strip("'")
-                            name = arg.original_name if arg.original_name is not None else arg.name
-                            keyword_args[name] = self._typecastArgument(self.arguments[arg.name], value)
+                            keyword_args[arg.name] = self._typecastArgument(self.arguments[arg.name], value)
                     except StopIteration:
                         self.logger.error(f"Argument {arg.name} expects a value.")
                         return None
@@ -195,16 +220,47 @@ class Command:
                         return None
             else:
                 positional_args.append(token.strip('"').strip("'"))
-
         return positional_args, keyword_args
 
     def _typecastArgument(self, argument, value):
+        """
+        This helper converts the given `value` to the type expected by `argument`.
+        If `argument.array_size > 0`, it expects the value to be an array.
+          - If a list is passed (from keyword parsing) it will iterate over its elements.
+          - If a string is passed (from a positional argument) it must be enclosed in [].
+        """
         try:
-            if isinstance(value, list):
-                return [argument.type(v) for v in value]
-            return argument.type(value)
-        except ValueError:
-            raise ValueError(f"Cannot convert value \"{value}\" for argument {argument.name} to {argument.type}")
+            # If the argument expects an array, handle accordingly.
+            if argument.array_size > 0:
+                # Determine the inner type (for a list type like list[int]).
+                inner_type = argument.type
+                if hasattr(argument.type, '__origin__') and argument.type.__origin__ == list:
+                    inner_type = argument.type.__args__[0]
+                # If value is already a list, use it directly.
+                if isinstance(value, list):
+                    if len(value) != argument.array_size:
+                        raise ValueError(f"Expected {argument.array_size} values, got {len(value)}.")
+                    return [inner_type(v) for v in value]
+                elif isinstance(value, str):
+                    match = re.fullmatch(r'\[(.*)\]', value.strip())
+                    if not match:
+                        raise ValueError(f"Value for argument '{argument.name}' must be enclosed in brackets [].")
+                    inner_str = match.group(1)
+                    parts = [v.strip() for v in inner_str.split(',')]
+                    if len(parts) != argument.array_size:
+                        raise ValueError(f"Expected {argument.array_size} values, got {len(parts)}.")
+                    return [inner_type(v) for v in parts]
+                else:
+                    raise ValueError(f"Unsupported value type for argument '{argument.name}'.")
+            else:
+                # For non-array arguments.
+                if hasattr(argument.type, '__origin__') and argument.type.__origin__ == list:
+                    # Although if array_size==0 this is unexpected.
+                    inner_type = argument.type.__args__[0]
+                    return inner_type(value)
+                return argument.type(value)
+        except Exception as e:
+            raise ValueError(f"Cannot convert value \"{value}\" for argument '{argument.name}' to {argument.type}: {e}")
 
     def help(self):
         help_string = (f"{string.bold_text}Command:{string.text_reset} "
@@ -228,11 +284,17 @@ class Command:
         return help_string
 
 
+@callback_handler
+class CommandSet_Callbacks:
+    update: CallbackContainer
+
+
 class CommandSet:
     commands: dict[str, Command]
     parent_set: (None, 'CommandSet')
     child_sets: (None, 'CommandSet')
     description: str = ''
+    callbacks: CommandSet_Callbacks
 
     def __init__(self, name, commands: list[Command] = None, child_sets: list['CommandSet'] = None, description=''):
         self.commands = {}
@@ -240,6 +302,7 @@ class CommandSet:
         self.description = description
         self.parent_set = None
         self.child_sets = {}
+        self.callbacks = CommandSet_Callbacks()
 
         self.logger = Logger(name=f'CommandSet {self.name}')
 
@@ -271,6 +334,8 @@ class CommandSet:
                 self.commands[value.name] = value
         elif isinstance(command, Command):
             self.commands[command.name] = command
+
+        self.callbacks.update.call()
 
     @property
     def commandSetPath(self):
@@ -342,11 +407,16 @@ class CommandSet:
         self.child_sets[child_cli.name] = child_cli
         child_cli.parent_set = self
 
+        child_cli.callbacks.update.register(self.callbacks.update.call)
+        self.callbacks.update.call()
+
     def removeChild(self, child_cli):
         if isinstance(child_cli, CommandSet):
             self.child_sets.pop(child_cli.name)
         elif isinstance(child_cli, str):
             self.child_sets.pop(child_cli)
+
+        self.callbacks.update.call()
 
     def help(self, *args, detail=False, **kwargs):
         help_output = []
@@ -448,36 +518,85 @@ class CommandSet:
         remaining_command_string = ' '.join(tokens[1:])
         return command, args, params, remaining_command_string
 
+    def getByPath(self, path):
+        """
+        Retrieves a CommandSet or Command within this command set by a given path.
+        The input 'path' can be a string with tokens separated by '/' (e.g. "subset1/function1")
+        or a list of tokens. Special tokens:
+          - "." refers to the root of the CLI (ascends via parent_set until None).
+          - ".." moves to the parent set.
+        If the final token matches a command in the current set (and not a child set),
+        that Command is returned; otherwise the CommandSet is returned.
+        Returns None if any token in the path is not found.
+        """
+        if isinstance(path, str):
+            tokens = [token for token in path.split('/') if token]
+        else:
+            tokens = path
+
+        current = self
+        for i, token in enumerate(tokens):
+            if token == '.':
+                # Move to CLI root.
+                while current.parent_set is not None:
+                    current = current.parent_set
+            elif token == '..':
+                if current.parent_set is not None:
+                    current = current.parent_set
+                else:
+                    return None
+            else:
+                if token in current.child_sets:
+                    current = current.child_sets[token]
+                elif token in current.commands:
+                    # If this is the final token, return the command.
+                    if i == len(tokens) - 1:
+                        return current.commands[token]
+                    else:
+                        # Cannot descend further from a command.
+                        return None
+                else:
+                    return None
+        return current
+
 
 # ======================================================================================================================
+@callback_handler
+class CLI_Callbacks:
+    update: CallbackContainer
+
+
 class CLI:
     root_set: (None, CommandSet)
     active_set: (None, CommandSet)
+    callbacks: CLI_Callbacks
 
     text_output_function: callable
 
-    # ==================================================================================================================
     def __init__(self, root_set: CommandSet = None, active_set: CommandSet = None,
                  text_output_function: callable = None):
 
         self.text_output_function = text_output_function
+        self.callbacks = CLI_Callbacks()
+        self.active_set = None
 
-        self.root_set = root_set
+        self.setRootSet(root_set)
+
         if active_set is None:
             active_set = self.root_set
         self.setActiveSet(active_set)
 
-    # ------------------------------------------------------------------------------------------------------------------
     def setRootSet(self, root_set: CommandSet):
         self.root_set = root_set
+
+        if self.root_set is not None:
+            self.root_set.callbacks.update.register(self.callbacks.update.call)
         if self.active_set is None:
             self.active_set = self.root_set
 
-    # ------------------------------------------------------------------------------------------------------------------
     def setActiveSet(self, active_set: CommandSet):
         self.active_set = active_set
 
-    # ------------------------------------------------------------------------------------------------------------------
     def runCommand(self, command: str):
         if self.active_set is None:
             return
@@ -490,34 +609,7 @@ class CLI:
                 self.trace(ret)
             return ret
 
-    # ------------------------------------------------------------------------------------------------------------------
-    def getCommandSetByPath(self, path: list) -> (None, CommandSet):
-        """
-        Helper method to retrieve a CommandSet by a given path.
-        The path is a list of command-set names starting at the root.
-        For example, given path ['.', 'set1', 'set2'], the method will start
-        at the root and search for child sets 'set1' then 'set2'.
-        """
 
-        if self.root_set is None:
-            return None
-
-        current_set = self.root_set
-        if not path:
-            return current_set
-
-        for token in path:
-            # If the token is '.' or matches the current set's name, stay here.
-            if token == '.' or token == current_set.name:
-                continue
-            elif token in current_set.child_sets:
-                current_set = current_set.child_sets[token]
-            else:
-                logger.error(f"Command set token '{token}' not found in '{current_set.name}'")
-                return None
-        return current_set
-
-    # ------------------------------------------------------------------------------------------------------------------
     def executeFromConnectorDict(self, command_dict: dict):
         """
         Executes a command using a dictionary with the structure:
@@ -530,12 +622,6 @@ class CLI:
                     'keyword': {'a': 2, 'b': 'HALLO'}
                 }
             }
-
-        The method will:
-          1. Verify that the required keys ('name', 'path', 'arguments') are present.
-          2. Use getCommandSetByPath() to locate the target command set.
-          3. Check that the specified command exists within that set.
-          4. Build a token list from the provided arguments and delegate parsing to the command.
         """
         # Validate required keys.
         required_keys = ['name', 'path', 'arguments']
@@ -552,7 +638,7 @@ class CLI:
         kw_args = arguments.get('keyword', {})
 
         # Retrieve target command set using the provided path.
-        target_set = self.getCommandSetByPath(command_path)
+        target_set = self.getByPath(command_path)
         if target_set is None:
             logger.error(f"Command set specified by path {command_path} not found.")
             return
@@ -567,7 +653,11 @@ class CLI:
         tokens = []
         # Add all positional arguments.
         for pos in pos_args:
-            tokens.append(str(pos))
+            if isinstance(pos, list):
+                # Format list positional arguments as: [val1,val2,...]
+                tokens.append("[" + ",".join(str(x) for x in pos) + "]")
+            else:
+                tokens.append(str(pos))
         # Add keyword arguments.
         for key, value in kw_args.items():
             # Try to retrieve the corresponding argument definition.
@@ -578,12 +668,25 @@ class CLI:
                     if a.original_name == key:
                         arg_def = a
                         break
-            if arg_def is not None and arg_def.is_flag:
-                if value:
+            if arg_def is not None:
+                if arg_def.is_flag:
+                    if value:
+                        tokens.append(f"--{arg_def.name}")
+                else:
                     tokens.append(f"--{arg_def.name}")
+                    if isinstance(value, list):
+                        # Format the list as a string like: [val1,val2,...]
+                        list_str = "[" + ",".join(str(v) for v in value) + "]"
+                        tokens.append(list_str)
+                    else:
+                        tokens.append(str(value))
             else:
                 tokens.append(f"--{key}")
-                tokens.append(str(value))
+                if isinstance(value, list):
+                    list_str = "[" + ",".join(str(v) for v in value) + "]"
+                    tokens.append(list_str)
+                else:
+                    tokens.append(str(value))
         # Delegate parsing and execution to the command's run method.
         try:
             ret = command_obj.run(tokens)
@@ -594,7 +697,6 @@ class CLI:
             logger.error(f"Error executing command '{command_name}': {e}")
             self.trace(f"Error executing command '{command_name}': {e}")
 
-    # ------------------------------------------------------------------------------------------------------------------
     def getCommandSetDescription(self):
         def serialize_command(command: Command):
             return {
@@ -614,7 +716,6 @@ class CLI:
                 }
             }
 
-        # --------------------------------------------------------------------------------------------------------------
         def serialize_command_set(command_set: CommandSet):
             return {
                 "name": command_set.name,
@@ -626,10 +727,32 @@ class CLI:
 
         return serialize_command_set(self.root_set)
 
-    # ------------------------------------------------------------------------------------------------------------------
     def trace(self, text):
         if self.text_output_function is not None:
             self.text_output_function(text)
+
+    def getByPath(self, path):
+        """
+        Retrieves a CommandSet or Command by the given path.
+        The input 'path' can be a string (with '/' as separator, e.g. "subset1/function1")
+        or a list of tokens. Special tokens:
+          - "." refers to the CLI's root set.
+          - ".." refers to the parent set.
+        If the final token matches a command name, that Command is returned.
+        Otherwise, the CommandSet is returned.
+        Returns None if any part of the path is not found.
+        """
+        if isinstance(path, str):
+            tokens = [token for token in path.split('/') if token]
+        else:
+            tokens = path
+
+        if not tokens:
+            return self.active_set
+
+        # If the first token is ".", start from the root set; otherwise, start from the active set.
+        start_set = self.root_set if tokens[0] == '.' else self.active_set
+        return start_set.getByPath(tokens)
 
 
 # ======================================================================================================================
@@ -719,18 +842,6 @@ class CLI_Connector:
             return {'success': False, 'error': arg_err}
 
         pos_args, kw_args = parsed_args
-
-        # for arg_name, arg_def in arg_defs.items():
-        #     key = arg_def.get('original_name') if arg_def.get('original_name') is not None else arg_name
-        #     if arg_def.get('optional', False) or (arg_def.get('default') is not None):
-        #         if key not in kw_args:
-        #             kw_args[key] = arg_def.get('default')
-        #     elif arg_def.get('is_flag', False):
-        #         if key not in kw_args:
-        #             kw_args[key] = False
-        #     else:
-        #         if key not in kw_args:
-        #             return {'success': False, 'error': f"Argument '{arg_name}' was not provided"}
 
         result = {
             'success': True,
@@ -889,3 +1000,5 @@ class CLI_Connector:
                 pos_args.append(token.strip('"').strip("'"))
                 i += 1
         return (pos_args, kw_args), None
+
+# End of file.

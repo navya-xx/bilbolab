@@ -7,38 +7,110 @@
 
 
 #include "twipr_errors.h"
+#include "firmware.hpp"
 
-void twipr_error_handler(uint32_t errorcode) {
+BILBO_ErrorHandler* handler;
+osSemaphoreId_t log_semaphore;
 
-	// Turn on the LED2
+/* ================================================================================== */
+BILBO_ErrorHandler::BILBO_ErrorHandler() {
+	handler = this;
+	log_semaphore = osSemaphoreNew(1, 1, NULL);
+	this->log_index = 0;
+}
 
-	// if the error code starts with 0x00 then it's severe and should result in a firmware stop
-	if (errorcode >> 24 == 0x00) {
-		// Try to suspend all tasks
-		vTaskSuspendAll();
-		while (true) {
-			uint8_t id1 = errorcode >> 8 & 0xFF;
-			uint8_t id2 = errorcode & 0xFF;
 
-			for (int i = 0; i < id1; i++) {
-				rc_status_led_2.on();
-				HAL_Delay(150);
-				rc_status_led_2.off();
-				HAL_Delay(150);
-			}
-			delay(750);
-			for (int i = 0; i < id2; i++) {
-				rc_status_led_2.on();
-				HAL_Delay(150);
-				rc_status_led_2.off();
-				HAL_Delay(150);
-			}
-			HAL_Delay(1500);
-		}
+void BILBO_ErrorHandler::init(bilbo_error_handler_config_t config){
+	this->config = config;
+}
+
+/* ================================================================================== */
+void BILBO_ErrorHandler::setError(bilbo_error_type_t type, bilbo_error_t error){
+	osSemaphoreAcquire(log_semaphore, portMAX_DELAY);
+
+	bilbo_error_log_entry_t new_entry = {
+			.tick = tick_global,
+			.type = type,
+			.error = error
+	};
+
+	this->error_log[this->log_index] = new_entry;
+
+	this->log_index++;
+
+	if (this->log_index == BILBO_ERROR_LOG_SIZE){
+		this->log_index = 0;
+	}
+
+	if (type>this->state){
+		this->state = type;
+	}
+
+	if (this->state >= BILBO_ERROR_MAJOR){
+
+		this->config.firmware->firmware_state = TWIPR_FIRMWARE_STATE_ERROR;
+		stopControl();
+
+		// TODO: Make LEDs red, send error message
+	}
+
+	osSemaphoreRelease(log_semaphore);
+
+	BILBO_Message_Error msg = BILBO_Message_Error({
+		.type = type,
+		.error = error,
+		.overall_error = this->state
+	});
+
+	sendMessage(msg);
+}
+
+
+/* ================================================================================== */
+void BILBO_ErrorHandler::clearErrorState(bilbo_error_type_t type){
+
+	// TODO: This might not be good. If I just want to clean a max wheel speed I should not clear all warnings
+	if (this->state <= type){
+		this->state = BILBO_ERROR_NONE;
 	}
 }
 
-void twipr_error_handler(uint32_t errorcode, uint8_t *data, uint16_t len) {
 
+/* ================================================================================== */
+bilbo_error_type_t BILBO_ErrorHandler::getStatus(){
+	osSemaphoreAcquire(log_semaphore, portMAX_DELAY);
+	bilbo_error_type_t status = this->state;
+	osSemaphoreRelease(log_semaphore);
+	return status;
+}
+
+
+/* ================================================================================== */
+twipr_logging_error_t BILBO_ErrorHandler::getSample(){
+
+	twipr_logging_error_t sample;
+	osSemaphoreAcquire(log_semaphore,
+			portMAX_DELAY);
+	sample.state = this->state;
+
+	uint16_t index;
+	if (this->log_index == 0){
+		index = BILBO_ERROR_LOG_SIZE-1;
+	} else {
+		index = this->log_index;
+	}
+
+	sample.last_entry = this->error_log[index];
+	osSemaphoreRelease(log_semaphore);
+
+	return sample;
+}
+
+
+/* ================================================================================== */
+void setError(bilbo_error_type_t type, bilbo_error_t error){
+	if(handler){
+		handler->setError(type, error);
+	}
 }
 

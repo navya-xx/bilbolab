@@ -22,7 +22,9 @@ void TWIPR_BalancingControl::init(twipr_balancing_control_config_t config) {
 void TWIPR_BalancingControl::start() {
 	if (this->status == TWIPR_BALANCING_CONTROL_STATUS_NONE
 			|| this->status == TWIPR_BALANCING_CONTROL_STATUS_ERROR) {
-		twipr_error_handler(TWIPR_BALANCING_CONTROL_ERROR_INIT);
+
+//		setError();
+//		twipr_error_handler(TWIPR_BALANCING_CONTROL_ERROR_INIT);
 	}
 	this->status = TWIPR_BALANCING_CONTROL_STATUS_RUNNING;
 }
@@ -85,8 +87,8 @@ void TWIPR_BalancingControl::_calculateOutput(twipr_estimation_state_t state,
 }
 /* ========================================================================= */
 void TWIPR_BalancingControl::reset() {
-	this->stop();
-	this->start();
+//	this->stop();
+//	this->start();
 }
 /* ========================================================================= */
 void TWIPR_BalancingControl::stop() {

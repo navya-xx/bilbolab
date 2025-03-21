@@ -16,6 +16,12 @@
 // FIRMWARE MODES
 #define TWIPR_FIRMWARE_USE_MOTORS 1
 
+#define BILBO_DRIVE_SIMPLEXMOTION_RS485
+//#define BILBO_DRIVE_SIMPLEXMOTION_CAN
+
+
+#define BILBO_MODEL_BIG // Define one of these: BILBO_MODEL_NORMAL, BILBO_MODEL_SMALL, BILBO_MODEL_BIG
+
 // Main Task Frequency
 #define TWIPR_CONTROL_TASK_FREQ 100
 
@@ -24,7 +30,7 @@
 #define TWIPR_SAFETY_MAX_WHEEL_SPEED 75
 
 // Control - Trajectories
-#define TWIPR_SEQUENCE_TIME 60 // seconds
+#define TWIPR_SEQUENCE_TIME 30 // seconds
 
 // Logging
 #define TWIPR_FIRMWARE_SAMPLE_BUFFER_TIME 0.1 // seconds

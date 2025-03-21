@@ -2,6 +2,7 @@ import copy
 import dataclasses
 import threading
 import ctypes  # Needed for ctypes types in serial communication
+import time
 
 # Importing low-level sample class from STM32 interface
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample
@@ -146,7 +147,6 @@ class BILBO_Control:
 
         This method is intended to be extended as needed.
         """
-        ...
 
     # ------------------------------------------------------------------------------------------------------------------
     def start(self):
@@ -159,8 +159,6 @@ class BILBO_Control:
         self.config = self.loadConfig('default')
         if self.config is None:
             return False
-        # Optionally start a dedicated thread for control updates
-        # self._thread.start()
 
         self.status = BILBO_Control_Status.NORMAL
         return True
@@ -209,12 +207,13 @@ class BILBO_Control:
             return None
 
         # Write the configuration to the hardware
-        success = self._writeControlConfig(config)
+        success = self._setControlConfig(config, verify=True)
         if not success:
             logger.warning(f"Control config {name} failed")
             return None
 
         logger.info(f"Control config \"{name}\" loaded!")
+        self.config = config
         self._resetExternalInput()
         return config
 
@@ -281,7 +280,7 @@ class BILBO_Control:
             return
         self.setMode(BILBO_Control_Mode.BALANCING)
         # Delay execution to allow balancing before switching to velocity mode
-        delayed_execution(self.setMode, 1, mode=BILBO_Control_Mode.VELOCITY)
+        # delayed_execution(self.setMode, 1, mode=BILBO_Control_Mode.VELOCITY)
 
     # ------------------------------------------------------------------------------------------------------------------
     def fallOver(self, direction='forward'):
@@ -370,6 +369,8 @@ class BILBO_Control:
             self.external_input.velocity.forward = forward_speed_scaled
             self.external_input.velocity.turn = turn_speed_scaled
         else:
+
+
             # If not in velocity mode, ignore the input
             ...
 
@@ -486,6 +487,25 @@ class BILBO_Control:
         self._setMaxWheelSpeed_LL(speed)
 
     # ------------------------------------------------------------------------------------------------------------------
+    def enableVelocityIntegralControl(self, enable: bool) -> bool:
+        success = self._comm.serial.executeFunction(
+            module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
+            address=addresses.TWIPR_ControlAddresses.ENABLE_VELOCITY_INTEGRAL_CONTROL,
+            data=enable,
+            input_type=ctypes.c_bool,
+            output_type=ctypes.c_bool
+        )
+
+        if success:
+            logger.info(f"Set velocity integral control to {enable}")
+
+            self.config.statefeedback.vic.enabled = enable
+        else:
+            logger.warning("Failed to set velocity integral control")
+
+        return success
+
+    # ------------------------------------------------------------------------------------------------------------------
     def getSample(self) -> TWIPR_Control_Sample:
         """
         Retrieve the current control sample.
@@ -520,63 +540,68 @@ class BILBO_Control:
         self._lowlevel_control_sample = sample
 
     # ------------------------------------------------------------------------------------------------------------------
-    def _writeControlConfig(self, config: control_config.ControlConfig):
-        """
-        Write the control configuration to the low-level module and verify if the configuration has been set correctly.
+    def _setControlConfig(self, config: control_config.ControlConfig, verify: bool = False):
 
-        Args:
-            config (control_config.ControlConfig): The configuration to write.
+        control_config = bilbo_control_configuration_ll_t(
+            K=(ctypes.c_float * 8)(*config.statefeedback.gain),  # type: ignore
+            forward_p=config.velocity_control.forward.feedback.Kp,
+            forward_i=config.velocity_control.forward.feedback.Ki,
+            forward_d=config.velocity_control.forward.feedback.Kd,
+            turn_p=config.velocity_control.turn.feedback.Kp,
+            turn_i=config.velocity_control.turn.feedback.Ki,
+            turn_d=config.velocity_control.turn.feedback.Kd,
+            vic_enabled=config.statefeedback.vic.enabled,
+            vic_ki=config.statefeedback.vic.Ki,
+            vic_max_error=config.statefeedback.vic.max_error,
+            vic_v_limit=config.statefeedback.vic.velocity_threshold
+        )
 
-        Returns:
-            bool: True if configuration is set correctly; False otherwise.
-        """
-        # Set state feedback gain
-        self._setStateFeedbackGain_LL(K=config.statefeedback.gain)
+        success = self._comm.serial.executeFunction(
+            module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
+            address=addresses.TWIPR_ControlAddresses.SET_CONFIG,
+            data=control_config,
+            input_type=bilbo_control_configuration_ll_t,
+            output_type=ctypes.c_bool,
+            timeout=1
+        )
 
-        # Set PID Control Values for forward and turn velocity
-        self._setVelocityControlPIDForward_LL(P=config.velocity_control.forward.feedback.Kp,
-                                              I=config.velocity_control.forward.feedback.Ki,
-                                              D=config.velocity_control.forward.feedback.Kd)
+        if success is None or not success:
+            logger.warning("Failed to set control configuration")
+            return False
 
-        self._setVelocityControlPIDTurn_LL(P=config.velocity_control.turn.feedback.Kp,
-                                           I=config.velocity_control.turn.feedback.Ki,
-                                           D=config.velocity_control.turn.feedback.Kd)
-
-        # TODO: Add Feedforward Values if needed
-
-        # TODO: Set Safety Control Values
         self._setMaxWheelSpeed_LL(speed=config.safety.max_speed)
 
-        # Read back configuration from low-level module
-        config_ll = self._readControlConfig_LL()
+        if verify:
+            # Read back configuration from low-level module
+            config_ll = self._readControlConfig_LL()
 
-        if config_ll is None:
-            return False
+            if config_ll is None:
+                return False
 
-        # Verify state feedback gain
-        if not are_lists_approximately_equal(config_ll['K'], config.statefeedback.gain):
-            logger.warning("State Feedback Gain not set correctly")
-            return False
+            # Verify state feedback gain
+            if not are_lists_approximately_equal(config_ll['K'], config.statefeedback.gain):
+                logger.warning("State Feedback Gain not set correctly")
+                return False
 
-        # Verify forward PID control values
-        if not are_lists_approximately_equal(
-                [config.velocity_control.forward.feedback.Kp,
-                 config.velocity_control.forward.feedback.Ki,
-                 config.velocity_control.forward.feedback.Kd],
-                [config_ll['forward_p'], config_ll['forward_i'], config_ll['forward_d']]):
-            logger.warning("PID Control Values not set correctly")
-            return False
+            # Verify forward PID control values
+            if not are_lists_approximately_equal(
+                    [config.velocity_control.forward.feedback.Kp,
+                     config.velocity_control.forward.feedback.Ki,
+                     config.velocity_control.forward.feedback.Kd],
+                    [config_ll['forward_p'], config_ll['forward_i'], config_ll['forward_d']]):
+                logger.warning("PID Control Values not set correctly")
+                return False
 
-        # Verify turn PID control values
-        if not are_lists_approximately_equal(
-                [config.velocity_control.turn.feedback.Kp,
-                 config.velocity_control.turn.feedback.Ki,
-                 config.velocity_control.turn.feedback.Kd],
-                [config_ll['turn_p'], config_ll['turn_i'], config_ll['turn_d']]):
-            logger.warning("PID Control Values not set correctly")
-            return False
+            # Verify turn PID control values
+            if not are_lists_approximately_equal(
+                    [config.velocity_control.turn.feedback.Kp,
+                     config.velocity_control.turn.feedback.Ki,
+                     config.velocity_control.turn.feedback.Kd],
+                    [config_ll['turn_p'], config_ll['turn_i'], config_ll['turn_d']]):
+                logger.warning("PID Control Values not set correctly")
+                return False
 
-        return True
+        return success
 
     # ------------------------------------------------------------------------------------------------------------------
     def _setControlMode_LL(self, mode: BILBO_Control_Mode_LL) -> None:
@@ -808,7 +833,7 @@ class BILBO_Control:
         status = None
         if status_ll == BILBO_Control_Status_LL.ERROR:
             status = BILBO_Control_Status.ERROR
-        elif status_ll == BILBO_Control_Status_LL.NORMAL:
+        elif status_ll == BILBO_Control_Status_LL.RUNNING:
             status = BILBO_Control_Status.NORMAL
 
         # If the status changed, call the status change callback
@@ -818,7 +843,7 @@ class BILBO_Control:
         # Update low-level mode from sample
         mode_ll = BILBO_Control_Mode_LL(sample.control.mode)
         if mode_ll is not self.mode_ll:
-            logger.info(f"LL Mode changed to {mode_ll.name}")
+            logger.info(f"LL control mode changed to {mode_ll.name}")
         self.mode_ll = mode_ll
 
         # Map low-level mode to high-level mode
@@ -836,7 +861,7 @@ class BILBO_Control:
         if mode != self.mode:
             self._resetExternalInput()
             self.callbacks.mode_change.call(mode, forced_change=True)
-            logger.info(f"Mode changed to {mode}")
+            logger.info(f"Control mode changed to {mode.name}")
 
         self.mode = mode
 

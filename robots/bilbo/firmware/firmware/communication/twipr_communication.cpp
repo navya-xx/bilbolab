@@ -17,7 +17,7 @@
 /**
  * Global register map instance with 255 entries initialized with the general register map.
  */
-core_utils_RegisterMap<255> register_map = core_utils_RegisterMap<255>(TWIPR_REGISTER_MAP_GENERAL);
+core_utils_RegisterMap<256> register_map = core_utils_RegisterMap<256>(TWIPR_REGISTER_MAP_GENERAL);
 
 /**
  * Static buffer for outgoing serial messages used for communication responses.
@@ -101,16 +101,16 @@ void TWIPR_CommunicationManager::init(twipr_communication_config_t config) {
     this->spi_interface.init(spi_config);
 
     // Register callback for receiving a new trajectory via SPI.
-    this->spi_interface.registerCallback(
-        TWIPR_SPI_COMM_CALLBACK_TRAJECTORY_RX,
-        core_utils_Callback<void, uint16_t>(this,
-            &TWIPR_CommunicationManager::_spi_rxTrajectory_callback));
 
-    // Register callback for transmitting sample data via SPI.
-    this->spi_interface.registerCallback(
-        TWIPR_SPI_COMM_CALLBACK_SAMPLE_TX,
-        core_utils_Callback<void, uint16_t>(this,
-            &TWIPR_CommunicationManager::_spi_txSamples_callback));
+
+    this->spi_interface.callbacks.trajectory_received.registerFunction(this,
+    		&TWIPR_CommunicationManager::_spi_rxTrajectory_callback);
+
+
+    this->spi_interface.callbacks.samples_transmitted.registerFunction(this,
+    		&TWIPR_CommunicationManager::_spi_txSamples_callback);
+
+
 
     // Register the DMA transfer complete callback for sample data transfers.
     HAL_DMA_RegisterCallback(
@@ -123,6 +123,18 @@ void TWIPR_CommunicationManager::init(twipr_communication_config_t config) {
     // ---------------------------
     can_config_t can_config = { .hfdcan = BOARD_FDCAN, };
     this->can.init(can_config);
+
+
+
+    // Initialize the MODBUS Interface
+    modbus_config_t modbus_config = {
+    		.huart = this->config.modbus_huart,
+			.EN_GPIOx = this->config.modbus_gpio_port,
+			.EN_GPIO_Pin = this->config.modbus_gpio_pin,
+			.hardware = MB_UART_DMA
+    };
+
+    this->modbus.init(modbus_config);
 }
 
 /**
@@ -139,6 +151,11 @@ void TWIPR_CommunicationManager::start() {
 
     // Start CAN bus communication.
     this->can.start();
+
+    // Start the Modbus
+	#ifdef BILBO_DRIVE_SIMPLEXMOTION_RS485
+    	this->modbus.start();
+	#endif
 }
 
 /**
@@ -148,6 +165,11 @@ void TWIPR_CommunicationManager::start() {
  */
 void TWIPR_CommunicationManager::resetUART() {
     this->uart_interface.reset();
+}
+
+
+void TWIPR_CommunicationManager::resetSPI() {
+	this->spi_interface.reset();
 }
 
 /**
@@ -315,9 +337,7 @@ void TWIPR_CommunicationManager::_uartResponseError(core_comm_SerialMessage *inc
  */
 void TWIPR_CommunicationManager::_spi_rxTrajectory_callback(uint16_t len) {
     // Notify about the new trajectory.
-    this->callbacks.new_trajectory.call(len);
-    // Provide sample data for further SPI communication.
-    this->spi_interface.provideSampleData();
+    this->callbacks.trajectory_received.call(len);
 }
 
 /**
@@ -327,12 +347,12 @@ void TWIPR_CommunicationManager::_spi_rxTrajectory_callback(uint16_t len) {
  * and toggles the sample notification GPIO to signal successful transfer.
  */
 void TWIPR_CommunicationManager::sampleBufferDMATransfer_callback() {
-    // Stop SPI transmission before processing the new sample data.
-    this->spi_interface.stopTransmission();
-    // Provide sample data to the SPI interface.
-    this->spi_interface.provideSampleData();
     // Toggle the GPIO to notify that sample data has been transferred.
     this->config.sample_notification_gpio.toggle();
+
+    if (this->_sample_buffer_tx[0].general.tick > 0){
+        rc_status_led_2.toggle();
+    }
 }
 
 /**
@@ -342,28 +362,23 @@ void TWIPR_CommunicationManager::sampleBufferDMATransfer_callback() {
  *
  * @param len The length of the sample data to be transmitted.
  */
-void TWIPR_CommunicationManager::_spi_txSamples_callback(uint16_t len) {
+void TWIPR_CommunicationManager::_spi_txSamples_callback() {
     // No implementation for transmitting samples is provided here.
 }
 
-/**
- * @brief Receive trajectory inputs over SPI.
- *
- * This function validates the number of trajectory steps and initiates SPI reception of trajectory inputs.
- *
- * @param steps The number of trajectory steps to receive.
- */
-void TWIPR_CommunicationManager::receiveTrajectoryInputs(uint16_t steps) {
-    // Check if the number of steps exceeds the allocated sequence buffer size.
-    if (steps > this->config.len_sequence_buffer) {
-        error("Comm: Sequence too long (%d > %d)", steps, this->config.len_sequence_buffer);
-        return;
-    }
-    // Stop current SPI transmission before receiving new trajectory inputs.
-    this->spi_interface.stopTransmission();
-    // Begin receiving trajectory inputs via SPI.
-    this->spi_interface.receiveTrajectoryInputs(steps);
-}
+
+//void TWIPR_CommunicationManager::receiveTrajectoryInputs(uint16_t steps) {
+//    // Check if the number of steps exceeds the allocated sequence buffer size.
+//    if (steps > this->config.len_sequence_buffer) {
+//        send_error("Comm: Sequence too long (%d > %d)", steps, this->config.len_sequence_buffer);
+//        return;
+//    }
+//    // Stop current SPI transmission before receiving new trajectory inputs.
+//    this->spi_interface.stopTransmission();
+//    // Begin receiving trajectory inputs via SPI.
+//    this->spi_interface.receiveTrajectoryInputs(steps);
+//}
+
 
 /**
  * @brief Provide sample data to the SPI interface via DMA.
@@ -380,6 +395,7 @@ void TWIPR_CommunicationManager::provideSampleData(twipr_logging_sample_t *buffe
         (uint32_t) &this->_sample_buffer_tx,
         TWIPR_FIRMWARE_SAMPLE_BUFFER_SIZE * sizeof(twipr_logging_sample_t)
     );
+
 }
 
 /**
@@ -449,7 +465,7 @@ void TWIPR_CommunicationManager::vprint(uint8_t flag, const char *format, va_lis
  * @param format Format string for the debug message.
  * @param ... Additional arguments for the format string.
  */
-void TWIPR_CommunicationManager::debug(const char *format, ...) {
+void TWIPR_CommunicationManager::send_debug(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprint(0, format, args);
@@ -462,7 +478,7 @@ void TWIPR_CommunicationManager::debug(const char *format, ...) {
  * @param format Format string for the info message.
  * @param ... Additional arguments for the format string.
  */
-void TWIPR_CommunicationManager::info(const char *format, ...) {
+void TWIPR_CommunicationManager::send_info(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprint(1, format, args);
@@ -475,7 +491,7 @@ void TWIPR_CommunicationManager::info(const char *format, ...) {
  * @param format Format string for the warning message.
  * @param ... Additional arguments for the format string.
  */
-void TWIPR_CommunicationManager::warning(const char *format, ...) {
+void TWIPR_CommunicationManager::send_warning(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprint(2, format, args);
@@ -488,7 +504,7 @@ void TWIPR_CommunicationManager::warning(const char *format, ...) {
  * @param format Format string for the error message.
  * @param ... Additional arguments for the format string.
  */
-void TWIPR_CommunicationManager::error(const char *format, ...) {
+void TWIPR_CommunicationManager::send_error(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprint(3, format, args);
@@ -503,7 +519,7 @@ void TWIPR_CommunicationManager::error(const char *format, ...) {
  * @param format Format string for the debug message.
  * @param ... Additional arguments for the format string.
  */
-void debug(const char *format, ...) {
+void send_debug(const char *format, ...) {
     if (active_manager) {
         va_list args;
         va_start(args, format);
@@ -520,7 +536,7 @@ void debug(const char *format, ...) {
  * @param format Format string for the info message.
  * @param ... Additional arguments for the format string.
  */
-void info(const char *format, ...) {
+void send_info(const char *format, ...) {
     if (active_manager) {
         va_list args;
         va_start(args, format);
@@ -537,7 +553,7 @@ void info(const char *format, ...) {
  * @param format Format string for the warning message.
  * @param ... Additional arguments for the format string.
  */
-void warning(const char *format, ...) {
+void send_warning(const char *format, ...) {
     if (active_manager) {
         va_list args;
         va_start(args, format);
@@ -554,11 +570,19 @@ void warning(const char *format, ...) {
  * @param format Format string for the error message.
  * @param ... Additional arguments for the format string.
  */
-void error(const char *format, ...) {
+void send_error(const char *format, ...) {
     if (active_manager) {
         va_list args;
         va_start(args, format);
         active_manager->vprint(3, format, args);
         va_end(args);
     }
+}
+
+
+
+void sendMessage(BILBO_Message_t &message) {
+	if (active_manager != NULL){
+		active_manager->sendMessage(message);
+	}
 }

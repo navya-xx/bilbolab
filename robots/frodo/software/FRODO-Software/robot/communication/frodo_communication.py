@@ -100,7 +100,6 @@ class FRODO_Communication:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _serial_stream_callback(self, message: UART_Message, *args, **kwargs):
-
         if message.address == FRODO_LL_Messages.FRODO_LL_MESSAGE_SAMPLE_STREAM:
             # global time_previous
             # print(f"Time: {time.perf_counter() - time_previous}")

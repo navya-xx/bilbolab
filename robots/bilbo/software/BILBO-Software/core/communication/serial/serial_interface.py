@@ -36,6 +36,7 @@ class SerialCommandType(enum.IntEnum):
 # === SerialMessage ====================================================================================================
 class SerialMessage:
     module: int = 1
+    tick: int = 0
     address: int = None
     command: SerialCommandType = None
     flag: int = None
@@ -51,13 +52,10 @@ class SerialMessage:
             msg = cls()
             msg.data = bytes_to_value(message.data, cls.data_type)
             msg.command = SerialCommandType(message.cmd)
+            msg.tick = message.tick
             return msg
         except Exception as e:
             return None
-
-    # def executeCallback(self):
-    #     if self.callback is not None:
-    #         self.callback(self)
 
 
 # ======================================================================================================================
@@ -282,7 +280,7 @@ class Serial_Interface:
     # ------------------------------------------------------------------------------------------------------------------
     def _handleMessage_event(self, message):
 
-        known_message_type = next(m for m in self.known_messages if message.address == m.address)
+        known_message_type = next((m for m in self.known_messages if message.address == m.address), None)
 
         if known_message_type is not None:
             known_message = known_message_type.decode(message)

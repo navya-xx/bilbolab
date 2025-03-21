@@ -23,12 +23,12 @@
 //#define ENABLE_USART_DMA 1
 
 
-#define T35  4              // Timer T35 period (in ticks) for end frame detection.
-#define MAX_BUFFER  512	    // Maximum size for the communication buffer in bytes.
-#define TIMEOUT_MODBUS 3 // Timeout for master query (in ticks)
-#define MAX_M_HANDLERS 2   //Maximum number of modbus handlers that can work concurrently
-#define MAX_TELEGRAMS 20     //Max number of Telegrams in master queue
-#define MODBUS_BUFFER_SIZE 512
+#define T35  1            // Timer T35 period (in ticks) for end frame detection.
+#define MAX_BUFFER  127	    // Maximum size for the communication buffer in bytes.
+#define TIMEOUT_MODBUS 1 // Timeout for master query (in ticks)
+#define MAX_M_HANDLERS 1   //Maximum number of modbus handlers that can work concurrently
+#define MAX_TELEGRAMS 40     //Max number of Telegrams in master queue
+#define MODBUS_BUFFER_SIZE 127
 
 
 #endif /* THIRD_PARTY_MODBUS_LIB_CONFIG_MODBUSCONFIG_H_ */

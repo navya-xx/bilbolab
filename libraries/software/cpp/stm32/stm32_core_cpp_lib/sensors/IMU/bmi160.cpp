@@ -35,7 +35,6 @@ uint8_t BMI160::init(bmi160_config_t config) {
 	// Check if the IMU can be addressed
 	if (not (this->check())) {
 		return 0;
-		core_ErrorHandler(CORE_ERROR_HARDWARE_IMU);
 	}
 
 	// Reset the IMU to delete all previously loaded registers
@@ -66,16 +65,16 @@ uint8_t BMI160::init(bmi160_config_t config) {
 	uint8_t gyr_range_reg = this->readRegister(BMI160_REG_GYRO_RANGE);
 
 	if (acc_config_reg != (this->_config.acc.odr | this->_config.acc.bw)) {
-		core_ErrorHandler(CORE_ERROR_HARDWARE_IMU);
+		return 0;
 	}
 	if (acc_range_reg != this->_config.acc.range) {
-		core_ErrorHandler(CORE_ERROR_HARDWARE_IMU);
+		return 0;
 	}
 	if (gyr_config_reg != (this->_config.gyr.odr | this->_config.gyr.bw)) {
-		core_ErrorHandler(CORE_ERROR_HARDWARE_IMU);
+		return 0;
 	}
 	if (gyr_range_reg != this->_config.gyr.range) {
-		core_ErrorHandler(CORE_ERROR_HARDWARE_IMU);
+		return 0;
 	}
 
 	return CORE_OK;

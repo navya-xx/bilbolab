@@ -20,14 +20,14 @@ uint8_t TWIPR_Sensors::init(twipr_sensors_config_t config) {
 	bmi160_config_t imu_config = { .hspi = BOARD_SPI_INTERN, .CS_GPIOx =
 	BOARD_CS_IMU_PORT, .CS_GPIO_Pin =
 	BOARD_CS_IMU_PIN, .gyr = gyr_config, .acc = acc_config };
-//
+
 	uint8_t success = imu.init(imu_config);
 
 	if (!success) {
+		setError(BILBO_ERROR_MAJOR, BILBO_ERROR_IMU_INITIALIZE);
 		this->status = TWIPR_SENSORS_STATUS_ERROR;
 		return 0;
 	}
-
 
 	this->_config = config;
 
@@ -36,7 +36,6 @@ uint8_t TWIPR_Sensors::init(twipr_sensors_config_t config) {
 }
 /* ======================================================= */
 void TWIPR_Sensors::start() {
-	// TODO
 	this->status = TWIPR_SENSORS_STATUS_RUNNING;
 }
 /* ======================================================= */
@@ -83,10 +82,10 @@ void TWIPR_Sensors::_readImu() {
 void TWIPR_Sensors::_readMotorSpeed() {
 	// TODO: I probably need some check here if this has been initialized or so
 
-	twipr_drive_can_speed_t motor_speed = this->_config.drive->getSpeed();
+	bilbo_drive_speed_t motor_speed = this->_config.drive->getSpeed();
 
-	this->_data.speed_left = motor_speed.speed_left;
-	this->_data.speed_right = motor_speed.speed_right;
+	this->_data.speed_left = motor_speed.left;
+	this->_data.speed_right = motor_speed.right;
 
 	nop();
 }

@@ -325,6 +325,7 @@ class SCHEDULING_DEFAULT_ACTIONS(enum.StrEnum):
     PAUSE = "pause"
     STOP = "stop"
     INIT = "init"
+    STEP = 'step'
 
 
 class ScheduledObject(ABC):
@@ -350,12 +351,16 @@ class ScheduledObject(ABC):
         action_stop = Action(action_id=SCHEDULING_DEFAULT_ACTIONS.STOP, function=self.stop)
         action_init = Action(action_id=SCHEDULING_DEFAULT_ACTIONS.INIT, function=self.init)
 
+        action_step = Action(action_id=SCHEDULING_DEFAULT_ACTIONS.STEP, function=self.step)
+
         self.addAction(action_entry)
         self.addAction(action_exit)
         self.addAction(action_start)
         self.addAction(action_pause)
         self.addAction(action_stop)
         self.addAction(action_init)
+
+        self.addAction(action_step)
 
         self.scheduling.parent = parent
 
@@ -401,10 +406,10 @@ class ScheduledObject(ABC):
 
     # Default actions (to be optionally overridden by subclasses)
     def entry(self, *args, **kwargs):
+        self.scheduling.tick += 1
         pass
 
     def exit(self, *args, **kwargs):
-        self.scheduling.tick += 1
         pass
 
     def start(self, *args, **kwargs):
@@ -414,6 +419,9 @@ class ScheduledObject(ABC):
         pass
 
     def stop(self, *args, **kwargs):
+        pass
+
+    def step(self, *args, **kwargs):
         pass
 
     @abstractmethod

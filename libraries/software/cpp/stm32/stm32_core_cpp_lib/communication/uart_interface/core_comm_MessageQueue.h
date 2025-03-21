@@ -47,6 +47,7 @@ public:
 		}
 
 //		*message = this->messages[this->idx_read];
+		message->tick = this->messages[this->idx_read].tick;
 		message->address_1 = this->messages[this->idx_read].address_1;
 		message->address_2 = this->messages[this->idx_read].address_2;
 		message->address_3 = this->messages[this->idx_read].address_3;

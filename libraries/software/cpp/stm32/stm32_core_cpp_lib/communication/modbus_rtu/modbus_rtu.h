@@ -28,6 +28,8 @@
 #include "timers.h"
 #include "semphr.h"
 
+void resetAllModbusHandlers();
+
 
 uint16_t calcCRC(uint8_t *Buffer, uint8_t u8length);
 uint16_t word(uint8_t H, uint8_t L);

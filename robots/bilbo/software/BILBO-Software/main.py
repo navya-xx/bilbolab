@@ -1,10 +1,14 @@
 import copy
 import ctypes
+import math
 import time
 
 from matplotlib import pyplot as plt
 
 from robot.bilbo import BILBO
+from robot.communication.serial.bilbo_serial_messages import BILBO_Debug_Message, BILBO_Sequencer_Event_Message
+from robot.control.definitions import BILBO_Control_Mode
+from robot.lowlevel.stm32_sample import BILBO_LL_Sample
 from utils.logging_utils import setLoggerLevel, Logger
 from utils.time import PerformanceTimer
 
@@ -14,30 +18,13 @@ logger = Logger('main')
 logger.setLevel('DEBUG')
 
 
-def sample_callback(data, *args, **kwargs):
-    ...
-
-
-# HALLO
 def main():
-    bilbo = BILBO()
+    bilbo = BILBO(reset_stm32=False)
     bilbo.init()
     bilbo.start()
 
-    time.sleep(30)
+    time.sleep(2)
 
-    num_samples = bilbo.logging.getNumSamples()
-    timer = PerformanceTimer(print_output=True)
-
-    data = bilbo.logging.getData(index_start=num_samples - 1000, index_end=num_samples, deepcopy=False, hdf5_only=True)
-    timer.stop()
-    # # samples_copy = copy.deepcopy(samples)
-    #
-    print(len(data))
-
-    # plt.plot(data['general.time'], data['estimation.state.theta'])
-    # plt.show()
-    pass
     while True:
         time.sleep(1)
 

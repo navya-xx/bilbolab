@@ -15,6 +15,8 @@ class TWIPR_GeneralAddresses(enum.IntEnum):
     ADDRESS_FIRMWARE_EXTERNAL_LED = 0x07
     ADDRESS_FIRMWARE_DEBUG_1_FLAG = 0x08
 
+    ADDRESS_FIRMWARE_RESET = 0xF1
+
 
 class TWIPR_ControlAddresses(enum.IntEnum):
     ADDRESS_CONTROL_READ_MODE = 0x10
@@ -27,8 +29,14 @@ class TWIPR_ControlAddresses(enum.IntEnum):
     ADDRESS_CONTROL_SET_SPEED_INPUT = 0x17
     ADDRESS_CONTROL_READ_CONFIG = 0x18
 
+    SET_CONFIG = 0x19
+
     ADDRESS_CONTROL_RW_MAX_WHEEL_SPEED = 0x20
 
+    ENABLE_VELOCITY_INTEGRAL_CONTROL = 0x31
+
+class TWIPR_EstimationAddresses(enum.IntEnum):
+    SET_THETA_OFFSET = 0x50
 
 class TWIPR_SequencerAddresses(enum.IntEnum):
     LOAD = 0x21

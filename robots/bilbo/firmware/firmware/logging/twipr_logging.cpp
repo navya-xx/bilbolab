@@ -24,9 +24,15 @@ void TWIPR_Logging::start() {
 }
 
 
+void TWIPR_Logging::reset() {
+	this->sample_index = 0;
+}
+
+
 
 twipr_logging_buffer_status_t TWIPR_Logging::collectSamples(){
 	this->sample_buffer[this->sample_index].general = this->config.firmware->getSample();
+	this->sample_buffer[this->sample_index].errors = this->config.error_handler->getSample();
 	this->sample_buffer[this->sample_index].control = this->config.control->getSample();
 	this->sample_buffer[this->sample_index].estimation = this->config.estimation->getSample();
 	this->sample_buffer[this->sample_index].sensors = this->config.sensors->getData();

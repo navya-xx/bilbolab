@@ -8,9 +8,9 @@
 #ifndef CONTROL_TWIPR_BALANCING_CONTROL_H_
 #define CONTROL_TWIPR_BALANCING_CONTROL_H_
 
-#include "core.h"
+#include "firmware_core.h"
 #include "twipr_estimation.h"
-#include "twipr_errors.h"
+
 
 #define TWIPR_BALANCING_CONTROL_ERROR 0x00000601
 #define TWIPR_BALANCING_CONTROL_ERROR_INIT 0x00000602

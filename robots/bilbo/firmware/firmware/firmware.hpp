@@ -8,18 +8,22 @@
 #ifndef FIRMWARE_HPP_
 #define FIRMWARE_HPP_
 
+#include "firmware_core.h"
 #include "twipr_communication.h"
-#include "twipr_drive_can.h"
 #include "twipr_control.h"
 #include "robot-control_std.h"
 #include "twipr_estimation.h"
-#include "twipr_errors.h"
+
 #include "twipr_logging.h"
-#include "firmware_defs.h"
-#include "twipr_safety.h"
+#include "bilbo_supervisor.h"
 #include "twipr_sequencer.h"
 #include "io.h"
 
+#include "bilbo_drive.h"
+#include "simplexmotion_can.h"
+#include "simplexmotion_rs485.h"
+
+#include "twipr_errors.h"
 
 class TWIPR_Firmware {
 
@@ -27,27 +31,28 @@ public:
 	TWIPR_Firmware();
 	HAL_StatusTypeDef init();
 	HAL_StatusTypeDef start();
+
+	bool reset();
+
 	void step();
 
 	void helperTask();
-	void controlTask();
-	void controlTaskStep();
+	void task();
+
 
 	twipr_logging_general_t getSample();
 
-	void errorHandler(twipr_error_t error);
-
+	void errorHandler(bilbo_error_type_t error);
 
 	twipr_debug_sample_t getDebugSample();
 
-	twipr_firmware_state_t firmware_state = TWIPR_FIRMWARE_STATE_RESET;
-	twipr_error_t error = TWIPR_ERROR_NONE;
+	twipr_firmware_state_t firmware_state = TWIPR_FIRMWARE_STATE_NONE;
 
-	twipr_firmware_revision_t revision = {.major = TWIPR_FIRMWARE_REVISION_MAJOR,
-										  .minor = TWIPR_FIRMWARE_REVISION_MINOR};
+	twipr_firmware_revision_t revision = { .major =
+			TWIPR_FIRMWARE_REVISION_MAJOR, .minor =
+			TWIPR_FIRMWARE_REVISION_MINOR };
 	uint32_t tick = 0;
 
-	TWIPR_Drive_CAN drive;
 	TWIPR_CommunicationManager comm;
 	TWIPR_ControlManager control;
 	TWIPR_Sequencer sequencer;
@@ -55,8 +60,18 @@ public:
 	TWIPR_Supervisor supervisor;
 	TWIPR_Sensors sensors;
 	TWIPR_Logging logging;
+	BILBO_Drive drive;
+	BILBO_ErrorHandler error_handler;
 
-	uint8_t debug(uint8_t input);
+#ifdef BILBO_DRIVE_SIMPLEXMOTION_CAN
+	SimplexMotion_CAN motor_left;
+	SimplexMotion_CAN motor_right;
+#endif
+
+#ifdef BILBO_DRIVE_SIMPLEXMOTION_RS485
+	SimplexMotion_RS485 motor_left;
+	SimplexMotion_RS485 motor_right;
+#endif
 
 	twipr_debug_sample_t debugData;
 

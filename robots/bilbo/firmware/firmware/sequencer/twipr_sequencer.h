@@ -8,7 +8,9 @@
 #ifndef SEQUENCER_TWIPR_SEQUENCER_H_
 #define SEQUENCER_TWIPR_SEQUENCER_H_
 
+#include <bilbo_messages.h>
 #include "twipr_control.h"
+#include "firmware_core.h"
 
 class TWIPR_CommunicationManager;
 
@@ -49,6 +51,7 @@ typedef struct twipr_sequence_input_t {
 
 
 typedef struct twipr_sequencer_sample_t {
+	twipr_sequencer_mode_t mode;
 	uint16_t sequence_id;
 	uint32_t sequence_tick;
 } twipr_sequencer_sample_t;
@@ -59,11 +62,6 @@ typedef struct twipr_sequencer_callbacks_t {
 	core_utils_Callback<void, uint16_t> aborted;
 } twipr_sequencer_callbacks_t;
 
-typedef struct trajectory_finished_data_t {
-
-} trajectory_finished_data_t;
-
-typedef BILBO_Message <trajectory_finished_data_t, MSG_EVENT, MESSAGE_TRAJECTORY_FNISHED> BILBO_Trajectory_Finished_Message;
 
 
 extern twipr_sequence_input_t rx_sequence_buffer[TWIPR_SEQUENCE_BUFFER_SIZE];
@@ -78,7 +76,7 @@ public:
 	void update();
 
 
-	void startSequence(uint16_t id);
+	bool startSequence(uint16_t id);
 	void abortSequence();
 	void finishSequence();
 	bool loadSequence(twipr_sequencer_sequence_data_t);
@@ -92,6 +90,8 @@ public:
 	void spiSequenceReceived_callback(uint16_t length);
 	void modeChange_callback(twipr_control_mode_t mode);
 
+	void sequenceReceivedAndTransferred_callback();
+
 	twipr_sequencer_mode_t mode;
 	uint32_t sequence_tick;
 	twipr_sequencer_config_t config;
@@ -102,9 +102,10 @@ public:
 
 private:
 
-	bool _sequence_received;
 	twipr_sequencer_callbacks_t _callbacks;
 
 };
+
+void trajectory_dma_transfer_cmplt_callback(DMA_HandleTypeDef *hdma);
 
 #endif /* SEQUENCER_TWIPR_SEQUENCER_H_ */

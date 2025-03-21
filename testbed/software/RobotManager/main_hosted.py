@@ -2,7 +2,7 @@ import time
 
 from utils.logging_utils import Logger
 from utils.network.hosted_network import hostNetwork
-from applications.BILBO.general.JoystickControl import SimpleTwiprJoystickControl
+from applications.BILBO._archive.JoystickControl import SimpleTwiprJoystickControl
 from utils.network.network import getValidHostIP
 
 logger = Logger('app')

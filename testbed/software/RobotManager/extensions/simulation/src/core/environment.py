@@ -8,6 +8,7 @@ from typing import Union
 import extensions.simulation.src.core.spaces as core_spaces
 import extensions.simulation.src.core.scheduling as scheduling
 import extensions.simulation.src.core.physics as physics
+# from extensions.simulation.src.core.agents import Agent
 from utils.logging_utils import Logger
 from extensions.simulation.src import core as core
 
@@ -108,24 +109,6 @@ class Object(scheduling.ScheduledObject):
         super().__init__()
 
         self.env = None
-        # self.group = group
-
-        # If the object is part of a group, adopt the group's world
-        # if self.group is not None and self.group.world is not None:
-        #     self.env = self.group.world
-
-        # Set the object's space. If both an argument and group space exist, prefer the group’s space.
-        # if self.group is not None and getattr(self.group, 'space', None) is not None:
-        #     self.space = self.group.space
-        # elif space is not None:
-        #     self.space = space
-
-        # Add object to its group (if any) and world (if any)
-        # if self.group is not None and hasattr(self.group, 'addObject'):
-        #     self.group.addObject(self)
-
-        # if self.env is not None and hasattr(self.env, 'addObject'):
-        #     self.env.addObject(self)
 
         # Initialize configuration from the space state if available
         if self.space is not None:
@@ -134,61 +117,56 @@ class Object(scheduling.ScheduledObject):
         # self.collision = CollisionData()
         # self.visualization = EnvironmentObjectVisualization()
 
-        self.action_step = core.scheduling.Action(action_id='step',
-                                                  object=self,
-                                                  function=self.step,
-                                                  priority=9,
-                                                  )
-
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.INPUT,
                                object=self,
                                function=self.action_input,
                                priority=10,
-                               parent=self.action_step)
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.SENSORS,
                                object=self,
                                function=self.action_sensors,
-                               priority=11,
-                               parent=self.action_step)
+                               priority=20,
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.COMMUNICATION,
                                object=self,
                                function=self.action_communication,
-                               priority=12,
-                               parent=self.action_step)
+                               priority=30,
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.LOGIC,
                                object=self,
                                function=self.action_logic,
-                               priority=13,
-                               parent=self.action_step)
+                               priority=40,
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.DYNAMICS,
                                object=self,
                                function=self.action_dynamics,
-                               priority=14,
-                               parent=self.action_step)
+                               priority=50,
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.PHYSICS,
                                object=self,
                                function=self.action_physics_update,
-                               priority=15, parent=self.action_step)
+                               priority=60,
+                               parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.OUTPUT,
                                object=self,
                                function=self.action_output,
-                               priority=16,
-                               parent=self.action_step)
+                               priority=70,
+                               parent=self.scheduling.actions['step'])
 
         # Register physics update action if the object is not static
-        if not self.static:
-            scheduling.Action(
-                action_id='physics_update',
-                function=self._updatePhysics,
-                lambdas={'config': lambda: self.configuration},
-                object=self
-            )
+        # if not self.static:
+        #     scheduling.Action(
+        #         action_id='physics_update',
+        #         function=self._updatePhysics,
+        #         lambdas={'config': lambda: self.configuration},
+        #         object=self
+        #     )
 
     # === PROPERTIES ================================================================================================
     @property
@@ -542,7 +520,7 @@ class Environment(scheduling.ScheduledObject):
     Ts: float
 
     objects: dict[str, Object]
-    agents: dict[str, Object]
+    agents: dict[str, 'Agent']
     name = 'env'
 
     logger: Logger
@@ -563,7 +541,6 @@ class Environment(scheduling.ScheduledObject):
 
         self.Ts = Ts
         self.run_mode = run_mode
-
         if not hasattr(self, 'space'):
             assert space is not None, "A space must be provided for the world."
             self.space = space
@@ -571,39 +548,35 @@ class Environment(scheduling.ScheduledObject):
         self.objects = {}
         self.agents = {}
 
-        self.action_step = scheduling.Action(action_id='step', object=self)
-
-        self.scheduling.actions['entry'].addParent(self.action_step)
-
+        self.scheduling.actions['entry'].addParent(self.scheduling.actions['step'])
         self.scheduling.actions['entry'].priority = 0
-        self.scheduling.actions['exit'].addParent(self.action_step)
+        self.scheduling.actions['exit'].addParent(self.scheduling.actions['step'])
         self.scheduling.actions['exit'].priority = 1000
 
-        self.scheduling.actions['init'].addAction(self._buildActionTree)
-        self.scheduler = scheduling.Scheduler(action=self.action_step, mode=self.run_mode, Ts=self.Ts)
+        self.scheduler = scheduling.Scheduler(action=self.scheduling.actions['step'], mode=self.run_mode, Ts=self.Ts)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.ENV_INPUT,
                                object=self,
-                               priority=0,
-                               parent=self.action_step,
+                               priority=10,
+                               parent=self.scheduling.actions['step'],
                                function=self.action_env_input)
 
         action_objects = core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.OBJECTS,
                                                 object=self,
                                                 function=self.action_objects,
-                                                priority=2,
-                                                parent=self.action_step)
+                                                priority=20,
+                                                parent=self.scheduling.actions['step'])
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.VISUALIZATION,
                                object=self,
-                               priority=3,
-                               parent=self.action_step,
+                               priority=30,
+                               parent=self.scheduling.actions['step'],
                                function=self.action_visualization)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.ENV_OUTPUT,
                                object=self,
-                               priority=4,
-                               parent=self.action_step,
+                               priority=40,
+                               parent=self.scheduling.actions['step'],
                                function=self.action_env_output)
 
         # Schedule simulation phases using unique IDs (not "name")
@@ -617,36 +590,36 @@ class Environment(scheduling.ScheduledObject):
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.SENSORS,
                                object=self,
                                function=self.action_sensors,
-                               priority=11,
+                               priority=20,
                                parent=action_objects)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.COMMUNICATION,
                                object=self,
                                function=self.action_communication,
-                               priority=12,
+                               priority=30,
                                parent=action_objects)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.LOGIC,
                                object=self,
                                function=self.action_logic,
-                               priority=13,
+                               priority=40,
                                parent=action_objects)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.DYNAMICS,
                                object=self,
                                function=self.action_dynamics,
-                               priority=14,
+                               priority=50,
                                parent=action_objects)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.PHYSICS,
                                object=self,
                                function=self.action_physics_update,
-                               priority=15, parent=action_objects)
+                               priority=60, parent=action_objects)
 
         core.scheduling.Action(action_id=BASE_ENVIRONMENT_ACTIONS.OUTPUT,
                                object=self,
                                function=self.action_output,
-                               priority=16,
+                               priority=70,
                                parent=action_objects)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -664,11 +637,11 @@ class Environment(scheduling.ScheduledObject):
 
     # ------------------------------------------------------------------------------------------------------------------
     def step(self, *args, **kwargs):
-        self.scheduling.actions['step'].run(*args, **kwargs)
+        ...
+        # self.scheduling.actions['step'].run(*args, **kwargs)
 
     # ------------------------------------------------------------------------------------------------------------------
     def entry(self, *args, **kwargs):
-        super().entry()
         self.scheduling.tick += 1
         self.scheduling.tick_global = self.scheduling.tick
 
@@ -709,9 +682,15 @@ class Environment(scheduling.ScheduledObject):
 
             self.objects[obj.id] = obj
 
+            for action_name, action in self.scheduling.actions.items():
+                if (action_name in obj.scheduling.actions and action_name not in (default_action.value for
+                                                                                  default_action
+                                                                                  in
+                                                                                  scheduling.SCHEDULING_DEFAULT_ACTIONS)):
+                    obj.scheduling.actions[action_name].addParent(action)
+
             logging.info(f"Added Object \"{obj.id}\" ({type(obj)}) to the world.")
 
-            # Call the object's on-add callback.
             obj._onAdd_callback()
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -848,22 +827,25 @@ class Environment(scheduling.ScheduledObject):
         return world_definition
 
     # ------------------------------------------------------------------------------------------------------------------
-    def _buildActionTree(self):
-        """
-        Additional initialization: build the action tree for all objects.
-        """
-        # Iterate over all objects and assign parent actions where applicable.
-        self.logger.debug("Building action tree")
-        for obj in self.objects.values():
-            for action_name, action in self.scheduling.actions.items():
-                if (action_name in obj.scheduling.actions and action_name not in (default_action.value for
-                                                                                  default_action
-                                                                                  in
-                                                                                  scheduling.SCHEDULING_DEFAULT_ACTIONS)
-                        and action_name != 'step'):
-                    obj.scheduling.actions[action_name].addParent(action)
+    # def _buildActionTree(self):
+    #     """
+    #     Additional initialization: build the action tree for all objects.
+    #     """
+    #     # Iterate over all objects and assign parent actions where applicable.
+    #     self.logger.debug("Building action tree")
+    #     for obj in self.objects.values():
+    #         print(obj.id)
+    #         for action_name, action in self.scheduling.actions.items():
+    #             print(action_name)
+    #             if (action_name in obj.scheduling.actions and action_name not in (default_action.value for
+    #                                                                               default_action
+    #                                                                               in
+    #                                                                               scheduling.SCHEDULING_DEFAULT_ACTIONS)
+    #                     and action_name != 'step'):
+    #                 print(action_name)
+    #                 obj.scheduling.actions[action_name].addParent(action)
 
-        # --------------------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------------------
 
     # --- Simulation phase actions ---
     def action_input(self, *args, **kwargs):

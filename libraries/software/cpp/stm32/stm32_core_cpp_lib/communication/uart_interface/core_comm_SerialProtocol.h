@@ -13,11 +13,12 @@
 #include "../../utils/core_utils.h"
 
 #define CORE_SERIAL_MESSAGE_HEADER 0x55
-#define CORE_SERIAL_MESSAGE_PROTOCOL_OVERHEAD 9
+#define CORE_SERIAL_MESSAGE_PROTOCOL_OVERHEAD 13
 
 class core_comm_SerialMessage {
 public:
 	uint8_t cmd;
+	uint32_t tick;
 	uint8_t address_1;
 	uint8_t address_2;
 	uint8_t address_3;

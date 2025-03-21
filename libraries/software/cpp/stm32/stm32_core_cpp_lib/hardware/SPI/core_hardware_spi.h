@@ -35,6 +35,8 @@ public:
 	void init(core_hardware_spi_config_t config);
 	void start();
 
+	void reset();
+
 	void registerCallback(core_hardware_spi_callback_id_t callback_id,
 			core_utils_Callback<void, void> callback);
 

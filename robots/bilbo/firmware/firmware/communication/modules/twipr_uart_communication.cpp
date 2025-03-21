@@ -8,6 +8,7 @@
  * It includes initialization, message handling, and task management for UART communication.
  */
 
+#include "firmware_core.h"
 #include "twipr_uart_communication.h"
 #include "robot-control_std.h"
 
@@ -116,6 +117,7 @@ void TWIPR_UART_Communication::reset() {
  */
 void TWIPR_UART_Communication::send(uint8_t cmd, uint8_t module, uint16_t address, uint8_t flag, uint8_t *data, uint8_t len) {
     // Populate the outgoing message structure with the provided parameters.
+	outgoing_msg.tick = tick_global;
     outgoing_msg.cmd = cmd;
     outgoing_msg.address_1 = module;
     outgoing_msg.address_2 = address >> 8;  // High byte of address.
@@ -140,6 +142,7 @@ void TWIPR_UART_Communication::send(uint8_t cmd, uint8_t module, uint16_t addres
  * @param msg Pointer to the serial message to be sent.
  */
 void TWIPR_UART_Communication::send(core_comm_SerialMessage *msg) {
+	msg->tick = tick_global;
     this->_uart_cm4.send(msg);
 }
 

@@ -8,8 +8,12 @@ TWIPR_USER_NAME = 'admin'
 TWIPR_PASSWORD = 'beutlin'
 
 
-class TWIPR_ControlMode(enum.IntEnum):
-    TWIPR_CONTROL_MODE_OFF = 0,
-    TWIPR_CONTROL_MODE_DIRECT = 1,
-    TWIPR_CONTROL_MODE_BALANCING = 2,
-    TWIPR_CONTROL_MODE_VELOCITY = 3
+class BILBO_Control_Mode(enum.IntEnum):
+    OFF = 0,
+    DIRECT = 1,
+    BALANCING = 2,
+    VELOCITY = 3
+
+
+BILBO_CONTROL_DT = 0.01
+MAX_STEPS_TRAJECTORY = 3000

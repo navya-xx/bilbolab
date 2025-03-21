@@ -1,55 +1,54 @@
-import logging
+import cobs.cobs as cobs
 
-import device_manager.communication.protocols.tcp.tcp_base_protocol as tcp_base_protocol
-import device_manager.communication.protocols.tcp.tcp_json_protocol as tcp_json_protocol
-import device_manager.communication.protocols.tcp.tcp_handshake_protocol as tcp_handshake_protocol
-from device_manager.utils.bytes import bytearray_to_string
-
-logging.basicConfig(level=logging.DEBUG)
+from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Message, TCP_Base_Protocol
+from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Message, TCP_JSON_Protocol
 
 
-def example_raw_message():
-    logging.info("Example Raw Protocol")
-    msg = tcp_base_protocol.TCP_Base_Message()
-    msg.data = [1, 2, 3, 4, 5]
-    msg.src = [1, 2]
-    msg.add = [3, 4]
-    byte_msg = msg.encode()
-    logging.info(bytearray_to_string(byte_msg))
+def example_tcp_message():
 
+    data_list = []
 
-def example_json_message():
-    logging.info("Example JSON Protocol")
-    data = {
-        'value_1': 3,
-        'value_2': [99, 87, -12, 0.123],
-        'value_3': "this is a test",
+    for i in range(30000):
+        data_list.append(i)
+
+    msg = TCP_JSON_Message()
+    msg.data = {
+        'x': 3,
+        'y': "HELLO",
+        'data': data_list
     }
+    msg.type = 'event'
+    msg.event = 'test'
 
-    msg = tcp_json_protocol.TCP_JSON_Message()
-    msg.data = data
-    byte_msg = msg.encode()
-    logging.info(bytearray_to_string(byte_msg))
+    payload = msg.encode()
 
-    # Revert the byte msg back to a normal message
-    msg_recovered = tcp_json_protocol.TCP_JSON_Protocol.decode(byte_msg)
+    print(len(payload))
 
+    base_message = TCP_Base_Message()
+    base_message.source = '192.168.2.1'
+    base_message.address = '192.168.2.2'
+    base_message.data = payload
+    base_message.data_protocol_id = 6
 
-def example_handshake():
-    logging.info("Example Handshake Protocol")
-    msg = tcp_handshake_protocol.TCP_Handshake_Message()
-    msg.protocols = [1, 2, 3]
-    msg.address = [10, 11, 12, 13]
-    msg.name = "ABCDEFGH"
-    byte_msg = msg.encode()
-    logging.info(bytearray_to_string(byte_msg))
+    buffer = base_message.encode()
 
-    msg_recovered = tcp_handshake_protocol.TCP_Handshake_Protocol.decode(byte_msg)
+    buffer_cobs = cobs.encode(buffer)
 
-    pass
+    print(buffer_cobs)
+
+    buffer_decobs = cobs.decode(buffer_cobs)
+
+    base_message_decoded = TCP_Base_Protocol.decode(buffer_decobs)
+
+    data_from_base_message = base_message_decoded.data
+
+    tcp_json_message_decoded = TCP_JSON_Protocol.decode(data_from_base_message)
+
+    print(tcp_json_message_decoded)
+
+    data_decoded = tcp_json_message_decoded.data['data']
+    # print(tcp_json_message_decoded.data['x'])
 
 
 if __name__ == '__main__':
-    example_raw_message()
-    example_json_message()
-    example_handshake()
+    example_tcp_message()

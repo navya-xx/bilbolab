@@ -69,11 +69,11 @@ void firmware_init() {
 	}
 
 	rc_buzzer.config.frequency = 440;
-	rc_buzzer.config.on_time_ms = 0;
+	rc_buzzer.config.on_time_ms = 200;
 	rc_buzzer.config.counter = 1;
 
 	led_status.off();
-	rc_buzzer.start();
+//	rc_buzzer.start();
 
 }
 

@@ -163,7 +163,7 @@ class TCP_Connection:
         message = self.protocol.decode(base_msg.data)  # Type: Ignore
 
         # Check if the message is a handshake event
-        if message.type == 'event' and message.data['event'] == 'handshake':
+        if message.type == 'event' and message.event == 'handshake':
             self._processIncomingHandshake(message)
             return
 

@@ -13,17 +13,18 @@
 #include "firmware_settings.h"
 #include "twipr_balancing_control.h"
 #include "twipr_speed_control.h"
-#include "twipr_drive_can.h"
 #include "firmware_defs.h"
+#include "firmware_core.h"
+#include "bilbo_drive.h"
 
 class TWIPR_Sequencer;
 class TWIPR_Supervisor;
-extern core_utils_RegisterMap<255> register_map;
+extern core_utils_RegisterMap<256> register_map;
 
 
 typedef struct twipr_control_init_config_t {
 	TWIPR_Estimation *estimation;
-	TWIPR_Drive_CAN *drive;
+	BILBO_Drive *drive;
 	float max_torque;
 	float freq;
 } twipr_control_init_config_t;
@@ -99,8 +100,11 @@ typedef struct twipr_control_configuration_t {
 	float turn_kp;
 	float turn_ki;
 	float turn_kd;
+	bool vic_enabled; // Velocity Integral Control enable/disable
+	float vic_ki;  // Velocity Integral Control Ki
+	float vic_max_error; // Velocity Integral Control maxmum error
+	float vic_v_limit;  // Velocity Integral Control Velocity Limit
 } twipr_control_configuration_t;
-
 
 class TWIPR_ControlManager {
 
@@ -111,6 +115,7 @@ public:
 	uint8_t start();
 
 	void stop();
+
 	void reset();
 
 	void update();
@@ -134,15 +139,21 @@ public:
 
 	uint8_t setBalancingGain(float *K);
 	uint8_t setVelocityControlForwardPID(float *K);
+	uint8_t setVelocityControlForwardPID(float Kp, float Ki, float Kd);
 	uint8_t setVelocityControlTurnPID(float *K);
+	uint8_t setVelocityControlTurnPID(float Kp, float Ki, float Kd);
 
-
+	bool setControlConfiguration(twipr_control_configuration_t config);
 	twipr_control_configuration_t getControlConfiguration();
+
+	bool enableSpeedIntegralControl(bool state);
 
 	twipr_control_status_t status = TWIPR_CONTROL_STATUS_IDLE;
 	twipr_control_mode_t mode = TWIPR_CONTROL_MODE_OFF;
 
 	twipr_control_init_config_t config;
+
+	twipr_control_configuration_t control_config;
 
 	twipr_control_callbacks_t callbacks;
 
@@ -160,7 +171,12 @@ private:
 
 	twipr_control_data_t _data;
 
+
 	bool _externalInputEnabled = true;
+
+
+	float _error_velocity_integral = 0;
+	float _updateVelocityIntegralController(float velocity);
 
 	//	twipr_control_input_t _last_input;
 	//	twipr_estimation_state_t _last_dynamic_state;
@@ -177,6 +193,7 @@ private:
 			twipr_balancing_control_input_t input,
 			twipr_estimation_state_t state);
 
+	void _setBalancingInput(twipr_balancing_control_input_t input);
 
 	twipr_control_output_t _step_off();
 	twipr_control_output_t _step_error();
@@ -193,5 +210,8 @@ private:
 };
 
 void twipr_control_task(void *control_manager);
+
+
+void stopControl();
 
 #endif /* CONTROL_TWIPR_CONTROL_H_ */

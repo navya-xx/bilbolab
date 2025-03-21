@@ -23,7 +23,7 @@ public:
 template <int size>
 class core_utils_Buffer: public Buffer {
 public:
-	core_utils_Buffer<size>(){
+	core_utils_Buffer(){
 		this->data_ptr = this->buffer;
 	}
 	uint8_t buffer[size] = { 0 };

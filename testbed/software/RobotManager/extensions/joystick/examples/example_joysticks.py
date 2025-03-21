@@ -13,7 +13,7 @@ def callback_new_joystick(joystick, *args, **kwargs):
     joystick.setButtonCallback(button=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], event='down', function=callback_button,
                                parameters={'eventtype': 'down'})
 
-    joystick.setJoyHatCallback(['up', 'down', 'left', 'right'], joyhat_callback)
+    # joystick.setJoyHatCallback(['up', 'down', 'left', 'right'], joyhat_callback)
 
 
 def callback_button(joystick: Joystick, button, eventtype, *args, **kwargs):
@@ -30,7 +30,7 @@ def main():
     jm = JoystickManager()
     jm.start()
 
-    jm.callbacks.register('new_joystick', callback_new_joystick)
+    jm.callbacks.new_joystick.register(callback_new_joystick)
 
     while True:
         for uuid, joystick in jm.joysticks.items():
@@ -38,7 +38,7 @@ def main():
             axes_formatted = " ".join(f"Axis {i}: {axis: 5.2f}" for i, axis in enumerate(joystick.axis))
             print(f"Joystick {joystick.id}, {axes_formatted}")
 
-        time.sleep(1)
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':

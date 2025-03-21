@@ -4,9 +4,13 @@ import queue
 import signal
 import threading
 import time
+
+from extensions.joystick.Mappings.joystick_mappings import joystick_mappings
 from utils.callbacks import callback_handler, CallbackContainer, Callback
 from os import environ
 
+
+from utils.events import event_handler, ConditionEvent
 from utils.exit import ExitHandler
 
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -34,7 +38,9 @@ class _JoystickManagerProcess:
         self.rx_queue = rx_queue
 
         self.pygame_joysticks = []
-        self.joystick_dict = joystick_dict
+        self.axes_dict = joystick_dict
+        self.joysticks = {}
+
         self._thread = threading.Thread(target=self.threadFunction)
         self._exit = False
         self.exit = ExitHandler(suppress_print=True)
@@ -63,13 +69,18 @@ class _JoystickManagerProcess:
             'id': str(joystick.get_instance_id())
         }
 
-        self.joystick_dict[str(joystick.get_instance_id())] = [0] * joystick.get_numaxes()
+        self.axes_dict[joystick.get_instance_id()] = [0] * joystick.get_numaxes()
+        self.joysticks[joystick.get_instance_id()] = {
+            'joystick': joystick,
+        }
 
         return data
 
     def handleRxEvent(self, event):
         if event['event'] == 'rumble':
-            js = self.pygame_joysticks[event['data']['device_id']]
+            if event['data']['device_id'] not in self.joysticks.keys():
+                return
+            js = self.joysticks[event['data']['device_id']]['joystick']
             js.rumble(0.5, 0.5, 500)
             js.rumble(event['data']['strength'], event['data']['strength'], int(math.floor(event['data']['duration'])))
 
@@ -80,7 +91,7 @@ class _JoystickManagerProcess:
                 axes = [0] * joystick.get_numaxes()
                 for axis in range(0, joystick.get_numaxes()):
                     axes[axis] = joystick.get_axis(axis)
-                self.joystick_dict[str(joystick.get_instance_id())] = axes
+                self.axes_dict[(joystick.get_instance_id())] = axes
 
             # Check for events:
             try:
@@ -223,7 +234,7 @@ class JoystickManager:
         logger.info("Close joystick manager")
 
     # ------------------------------------------------------------------------------------------------------------------
-    def rumbleJoystick(self, device_id, strength, duration):
+    def rumbleJoystick(self, device_id, strength=0.4, duration=200):
         self._tx_queue.put({
             'event': 'rumble',
             'data': {
@@ -279,7 +290,7 @@ class JoystickManager:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _removeJoystick(self, data):
-        joystick = self.joysticks[str(data['device_id'])]
+        joystick = self.joysticks[(data['device_id'])]
         self.joysticks.pop(joystick.id)
         logger.info(f"Joystick disconnected. Type: {joystick.name}. ID: {joystick.id}")
         for callback in self.callbacks.joystick_disconnected:
@@ -289,7 +300,7 @@ class JoystickManager:
     def _handleButtonEvent(self, data, event_type):
 
         # Get the Joystick for the event
-        joystick = self.joysticks[str(data['device_id'])]
+        joystick = self.joysticks[(data['device_id'])]
         button = data['button']
         if event_type == "down":
             joystick._buttonDown(button)
@@ -350,6 +361,12 @@ class JoystickManager:
 
 
 # ======================================================================================================================
+
+@event_handler
+class JoystickEvents:
+    button: ConditionEvent = ConditionEvent(flags=[('button', (str, int))])
+
+
 class Joystick:
     id: str
     instance_id: int
@@ -359,7 +376,8 @@ class Joystick:
     axis: list
 
     num_axes: int
-
+    mapping: dict
+    events: JoystickEvents
     button_callbacks: list['JoystickButtonCallback']
     joyhat_callbacks: list['JoyHatCallback']
 
@@ -374,8 +392,10 @@ class Joystick:
         self.button_callbacks = []
         self.joyhat_callbacks = []
 
-        self.manager = manager
+        self.events = JoystickEvents()
 
+        self.manager = manager
+        self.mapping = None
         self.instance_id = -1
         self.id = ''
         self.num_axes = 0
@@ -384,18 +404,21 @@ class Joystick:
 
     # === METHODS ======================================================================================================
     def register(self, data):
-        self.id = data['id']
+        self.id = data['instance_id']
         self.instance_id = data['instance_id']
         self.guid = data['guid']
         self.name = data['name']
         self.num_axes = data['num_axes']
+
+        if self.name in joystick_mappings:
+            self.mapping = joystick_mappings[self.name]
 
         self.axis = [0] * self.num_axes
         self.connected = True
         self.rumble(strength=0.2, duration=200)
 
     # ------------------------------------------------------------------------------------------------------------------
-    def setButtonCallback(self, button, function: callable, event: str = 'down', parameters: dict = None,
+    def setButtonCallback(self, button: (int, str), function: callable, event: str = 'down', parameters: dict = None,
                           lambdas: dict = None):
 
         if isinstance(button, list):
@@ -410,30 +433,62 @@ class Joystick:
 
     # ------------------------------------------------------------------------------------------------------------------
     def setJoyHatCallback(self, direction: str, function: callable, parameters: dict = None, lambdas: dict = None):
-        if isinstance(direction, list):
-            for dir in direction:
-                self.joyhat_callbacks.append(JoyHatCallback(dir, function, parameters, lambdas))
-        else:
-            self.joyhat_callbacks.append(JoyHatCallback(direction, function, parameters, lambdas))
+        raise NotImplementedError("setJoyHatCallback not implemented for joystick")
+        # if isinstance(direction, list):
+        #     for dir in direction:
+        #         self.joyhat_callbacks.append(JoyHatCallback(dir, function, parameters, lambdas))
+        # else:
+        #     self.joyhat_callbacks.append(JoyHatCallback(direction, function, parameters, lambdas))
 
     # ------------------------------------------------------------------------------------------------------------------
     def close(self):
         self.connected = False
 
     # ------------------------------------------------------------------------------------------------------------------
-    def rumble(self, strength=0.5, duration=0.5):
+    def rumble(self, strength=0.5, duration=500):
         self.manager.rumbleJoystick(self.instance_id, strength, duration)
 
-    #
     # ------------------------------------------------------------------------------------------------------------------
-    def _buttonDown(self, button):
-        callbacks = [callback for callback in self.button_callbacks if
+    def getAxis(self, axis: (int, str)):
+
+        value = 0
+
+        # Read the Axis
+        if isinstance(axis, int):
+            value = self.axis[axis]
+        elif isinstance(axis, str):
+            if self.mapping is not None:
+                if axis in self.mapping['AXES']:
+                    axis_num = self.mapping['AXES'][axis]
+                    value = self.axis[axis_num]
+
+        return value
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def _buttonDown(self, button: int):
+        callbacks_num = [callback for callback in self.button_callbacks if
                      callback.button == button and callback.event == 'down']
+
+
 
         logger.debug(f"Joystick: {self.id}, Event: Button {button} down")
 
-        for callback in callbacks:
+        for callback in callbacks_num:
             callback(joystick=self, button=button, event='down')
+
+        button_name = ''
+        if self.mapping is not None:
+            button_name = {v: k for k, v in self.mapping['BUTTONS'].items()}.get(button, "")
+
+            if button_name is not None:
+                callbacks_name = [callback for callback in self.button_callbacks if
+                                  callback.button == button_name and callback.event == 'down']
+                for callback in callbacks_name:
+                    callback(joystick=self, button=button_name, event='down')
+
+
+        self.events.button.set(resource=button, flags={'button': [button, button_name]})
+        # self.events.button.set(resource=button, flags={'button': button_name})
 
     # ------------------------------------------------------------------------------------------------------------------
     def _buttonUp(self, button):
@@ -482,7 +537,7 @@ class JoystickButtonCallback:
     callback: Callback
     event: str
 
-    def __init__(self, button, event, function: callable, parameters: dict = None, lambdas: dict = None):
+    def __init__(self, button: (str, int), event, function: callable, parameters: dict = None, lambdas: dict = None):
         """
 
         :param callback_type:

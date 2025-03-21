@@ -10,10 +10,10 @@
 
 #include "core.h"
 #include "robot-control_board.h"
-#include "twipr_drive_can.h"
+#include "bilbo_drive.h"
 
 typedef struct twipr_sensors_config_t {
-	TWIPR_Drive_CAN *drive;
+	BILBO_Drive *drive;
 } twipr_sensors_config_t;
 
 typedef struct twipr_sensors_data_t {

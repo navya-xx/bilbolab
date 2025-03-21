@@ -47,14 +47,20 @@ void core_hardware_SPI_slave::init(core_hardware_spi_config_t config) {
 
 	HAL_SPI_RegisterCallback(this->config.hspi, HAL_SPI_RX_COMPLETE_CB_ID,
 			spi_callback_rx);
+
 	HAL_SPI_RegisterCallback(this->config.hspi, HAL_SPI_TX_COMPLETE_CB_ID,
 			spi_callback_tx);
+
 	HAL_SPI_RegisterCallback(this->config.hspi, HAL_SPI_TX_RX_COMPLETE_CB_ID,
 			spi_callback_rxtx);
 }
 /* ====================================================== */
 void core_hardware_SPI_slave::start() {
 
+}
+
+void core_hardware_SPI_slave::reset(){
+	HAL_SPI_Abort(this->config.hspi);
 }
 
 /* ====================================================== */

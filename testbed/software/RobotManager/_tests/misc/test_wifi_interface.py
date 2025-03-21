@@ -1,6 +1,6 @@
 import time
 
-from applications.BILBO.general.JoystickControl import SimpleTwiprJoystickControl
+from applications.BILBO._archive.JoystickControl import SimpleTwiprJoystickControl
 from robots.bilbo.twipr import BILBO
 
 bilbo1: BILBO = None

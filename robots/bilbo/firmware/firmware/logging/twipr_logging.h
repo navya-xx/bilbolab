@@ -10,10 +10,11 @@
 
 #include "twipr_estimation.h"
 #include "twipr_sensors.h"
-#include "twipr_drive_can.h"
 #include "twipr_control.h"
 #include "twipr_sequencer.h"
 #include "firmware_defs.h"
+#include "bilbo_drive.h"
+#include "twipr_errors.h"
 
 class TWIPR_Firmware;
 
@@ -32,6 +33,7 @@ typedef struct twipr_debug_sample_t {
 
 typedef struct twipr_logging_sample_t {
 	twipr_logging_general_t general;
+	twipr_logging_error_t errors;
 	twipr_logging_control_t control;
 	twipr_logging_estimation_t estimation;
 	twipr_sensors_data_t sensors;
@@ -45,6 +47,7 @@ typedef struct twipr_logging_config_t {
 	TWIPR_Estimation *estimation;
 	TWIPR_Sensors *sensors;
 	TWIPR_Sequencer *sequencer;
+	BILBO_ErrorHandler* error_handler;
 } twipr_logging_config_t;
 
 typedef enum twipr_logging_buffer_status_t {
@@ -59,6 +62,8 @@ public:
 
 	void init(twipr_logging_config_t config);
 	void start();
+
+	void reset();
 
 	twipr_logging_buffer_status_t collectSamples();
 

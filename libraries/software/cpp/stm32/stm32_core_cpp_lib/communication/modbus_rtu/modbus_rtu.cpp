@@ -14,7 +14,7 @@ ModbusMaster *handlers[MAX_MODBUS_HANDLERS];
 uint8_t num_handlers = 0;
 
 const osThreadAttr_t task_attributes = { .name = "TaskModbusMaster",
-		.stack_size = 1028 * 4, .priority = (osPriority_t) osPriorityNormal };
+		.stack_size = 1028 * 4, .priority = (osPriority_t) osPriorityBelowNormal2 };
 
 const osSemaphoreAttr_t semaphore_attributes = { .name = "ModBusSphr" };
 
@@ -51,7 +51,7 @@ void ModbusMaster::init(modbus_config_t config) {
 				&task_attributes);
 
 		//
-		this->u16timeOut = 20;
+		this->u16timeOut = 30;
 		// Initialize the timeout timer
 		this->xTimerTimeout = xTimerCreate("xTimerTimeout", // Just a text name, not used by the kernel.
 				this->u16timeOut,     		// The timer period in ticks.
@@ -149,6 +149,7 @@ void ModbusMaster::start() {
 				this->xBufferRX.buffer,
 				MAX_BUFFER) != HAL_OK) {
 			while (1) {
+
 				//error in your initialization code
 			}
 		}
@@ -161,6 +162,14 @@ void ModbusMaster::start() {
 	this->u16InCnt = 0;
 	this->u16OutCnt = 0;
 	this->u16errCnt = 0;
+}
+
+void resetAllModbusHandlers(){
+	int n = num_handlers;
+
+	for (int i = 0; i<n; i++){
+		handlers[i]->reset();
+	}
 }
 
 void ModbusMaster::reset() {

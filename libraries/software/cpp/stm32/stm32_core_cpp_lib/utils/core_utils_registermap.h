@@ -101,7 +101,7 @@ public:
 template<int size>
 class core_utils_RegisterMap: public RegisterMap {
 public:
-	core_utils_RegisterMap<size>(uint8_t address) {
+	core_utils_RegisterMap(uint8_t address) {
 		this->address = address;
 	}
 	/* -------------------------------------------------- */

@@ -5,28 +5,36 @@ from pathlib import Path
 import tempfile
 
 
-# File Path Utilities
-def relativeToFullPath(relative_path):
+def relativeToFullPath(path_str):
     """
-    Resolve the absolute path from a relative path, relative to the caller's module.
+    Resolve the absolute path from a relative, absolute, or home path.
 
-    :param relative_path: Relative path to resolve.
-    :return: Absolute path.
+    If path_str starts with '~', it is expanded to the user's home directory.
+    If path_str is absolute (including after home expansion), it is resolved and returned.
+    Otherwise, it is resolved relative to the caller's module directory.
+
+    :param path_str: The path to resolve.
+    :return: The absolute, resolved path as a string.
     """
+    # Expand the home directory (if the path starts with '~')
+    path_obj = Path(path_str).expanduser()
+
+    # If the path is absolute, return its resolved version
+    if path_obj.is_absolute():
+        return str(path_obj.resolve())
+
     # Get the caller's frame
     caller_frame = inspect.stack()[1]
     caller_module = inspect.getmodule(caller_frame[0])
 
-    # Get the caller's directory
+    # Determine the caller's directory, or fallback to current working directory
     if caller_module and caller_module.__file__:
         caller_dir = Path(caller_module.__file__).parent.resolve()
     else:
-        # Fallback to the current working directory if module info is not available
         caller_dir = Path().cwd()
 
-    # Resolve the full path
-    full_path = (caller_dir / relative_path).resolve()
-
+    # Resolve the full path relative to the caller's directory
+    full_path = (caller_dir / path_obj).resolve()
     return str(full_path)
 
 

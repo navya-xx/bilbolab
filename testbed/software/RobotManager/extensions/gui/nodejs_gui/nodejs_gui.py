@@ -38,8 +38,8 @@ class NodeJSGui:
         self.websocket_stream = WebsocketClass('localhost', 8765)
         self.websocket_messages = WebsocketClass('localhost', 8766)
 
-        self.websocket_messages.set_message_callback(self._rxMessage_callback)
-        self.websocket_messages.set_connection_callback(self._websocketClientConnected_callback)
+        self.websocket_messages.callbacks.message.register(self._rxMessage_callback)
+        self.websocket_messages.callbacks.new_client.register(self._websocketClientConnected_callback)
 
         self.frontend_process = None
         self.browser_process = None  # Track the browser process

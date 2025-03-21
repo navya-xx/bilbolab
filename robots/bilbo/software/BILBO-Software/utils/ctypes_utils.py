@@ -31,7 +31,7 @@ class ConversionError(Exception):
     pass
 
 
-def struct_to_dict(struct: ctypes.Structure, ctype_type: ctypes.Structure) -> dict:
+def struct_to_dict(struct: ctypes.Structure, ctype_type: (Any, ctypes.Structure)) -> dict:
     """
     Converts a ctypes.Structure instance to a dictionary.
 

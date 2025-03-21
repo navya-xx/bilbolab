@@ -35,7 +35,7 @@ class BILBO_Serial_Communication:
     def __init__(self, interface: Serial_Interface):
         self.interface = interface
         self.interface.callbacks.rx.register(self._rx_callback)
-        self.interface.callbacks.stream.register(self._rx_stream_callback)
+        self.interface.callbacks.stream_all.register(self._rx_stream_callback)
         self.callbacks = BILBO_Serial_Communication_Callbacks()
         self.events = BILBO_Serial_Communication_Events()
 

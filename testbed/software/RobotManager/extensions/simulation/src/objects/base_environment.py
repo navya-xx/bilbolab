@@ -18,18 +18,6 @@ from extensions.simulation.src.utils.orientations import twiprToRotMat, twiprFro
 from extensions.simulation.src.utils.babylon import setBabylonSettings
 
 
-class BASE_ENVIRONMENT_ACTIONS(enum.StrEnum):
-    INPUT = 'input'
-    OBJECTS = 'objects'
-    SENSORS = 'sensors'
-    COMMUNICATION = 'communication'
-    LOGIC = 'logic'
-    DYNAMICS = 'dynamics'
-    PHYSICS = 'physics'
-    VISUALIZATION = 'visualization'
-    OUTPUT = 'output'
-
-
 class BaseEnvironment(core.environment.Environment):
     """
     A simple dynamic simulation world.
@@ -45,7 +33,6 @@ class BaseEnvironment(core.environment.Environment):
       - Output
     """
     space = core.spaces.Space3D()
-    # Ts = 0.02
 
     def __init__(self, Ts, run_mode, *args, **kwargs):
         super().__init__(Ts, run_mode, space=self.space, *args, **kwargs)

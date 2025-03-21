@@ -127,7 +127,10 @@ class TCP_Socket:
         except Exception:
             pass
         self._exit = True
-        self._rxThread.join()
+        try:
+            self._rxThread.join()
+        except RuntimeError:
+            ...
         logger.info("TCP socket %s closed", self.address)
         for callback in self.callbacks.disconnected:
             callback(self)
@@ -143,13 +146,18 @@ class TCP_Socket:
     def _rx_thread_fun(self):
         """
         Thread function to continuously receive data from the socket.
-        Received data is appended to an internal buffer and processed to extract
-        complete packets. Faulty packages are logged and maintained for a limited
-        time.
+        Received data is accumulated into an internal buffer and processed to extract
+        complete packets. This implementation properly handles partial packets
+        that may exceed the recv() call's size.
+
+        Note: Even if a packet is larger than the recv() size (8192 bytes),
+        TCP (being a stream protocol) will deliver it in parts, which are then
+        reassembled by the buffer.
         """
         while not self._exit:
             try:
-                data = self._connection.recv(8092)
+                # Increase recv buffer size to 8192 bytes.
+                data = self._connection.recv(8192)
             except Exception as e:
                 logger.warning("Error in TCP connection: %s. Closing connection.", e)
                 self.close()
@@ -160,7 +168,7 @@ class TCP_Socket:
                 self.close()
                 break
 
-            # Process the received data.
+            # Process the received data, accumulating partial packets if needed.
             self._processRxData(data)
 
             # Clean up old faulty packages approximately once per second.
@@ -228,34 +236,38 @@ class TCP_Socket:
         If COBS encoding is enabled, the packet is decoded before being added
         to the receive queue.
         """
+        # Append newly received data to the persistent buffer.
         self._rx_buffer += data
         delimiter = self.config.get('delimiter')
+
         while True:
             index = self._rx_buffer.find(delimiter)
             if index == -1:
-                # No complete packet found yet.
+                # No complete packet found yet; wait for more data.
                 break
-            # Extract one complete packet.
+
+            # Extract one complete packet from the buffer.
             packet = self._rx_buffer[:index]
+            # Remove the processed packet and delimiter from the buffer.
             self._rx_buffer = self._rx_buffer[index + len(delimiter):]
+
+            # If COBS encoding is enabled, attempt to decode the packet.
             if self.config.get('cobs', False):
                 try:
                     packet = cobs.decode(packet)
                 except Exception:
+                    # If decoding fails, log a faulty package and skip this packet.
                     self._faultyPackages.append(FaultyPackage(timestamp=time.time()))
-                    continue  # Skip this packet if decoding fails.
+                    continue
+
             self.rx_queue.put(packet)
 
-        # Signal and call receive callbacks if any packets have been added.
+        # Signal and invoke receive callbacks if any packets have been queued.
         if not self.rx_queue.empty():
             self.rx_event.set()
             for callback in self.callbacks.rx:
                 callback(self)
 
-
-# =============================================================================
-# TCP Sockets Handler classes for managing multiple clients.
-# =============================================================================
 
 @callback_handler
 class TCPSocketsHandlerCallbacks:

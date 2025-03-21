@@ -16,9 +16,13 @@
 #include "core.h"
 #include "twipr_logging.h"
 #include "twipr_sequencer.h"
+#include "firmware_core.h"
 
 // Define the length of the command message used in SPI communication.
 #define TWIPR_SPI_COMMAND_MESSAGE_LENGTH 4
+
+#define TWIPR_SPI_COMMAND_SAMPLES_READ 0x01
+#define TWIPR_SPI_COMMAND_TRAJECTORY_WRITE 0x02
 
 /**
  * @brief SPI Communication configuration structure.
@@ -41,8 +45,9 @@ typedef struct twipr_spi_comm_config_t {
  */
 typedef enum twipr_spi_comm_mode_t {
     TWIPR_SPI_COMM_MODE_NONE = 0,   ///< No operation mode.
-    TWIPR_SPI_COMM_MODE_RX   = 1,   ///< Reception mode.
-    TWIPR_SPI_COMM_MODE_TX   = 2,   ///< Transmission mode.
+	TWIPR_SPI_COMM_MODE_LISTENING_FOR_COMMAND = 1,
+    TWIPR_SPI_COMM_MODE_RX_TRAJECTORY   = 2,   ///< Reception mode.
+    TWIPR_SPI_COMM_MODE_TX_SAMPLES   = 3,   ///< Transmission mode.
 } twipr_spi_comm_mode_t;
 
 /**
@@ -50,20 +55,27 @@ typedef enum twipr_spi_comm_mode_t {
  *
  * Enumerates the callback types for SPI communication events.
  */
-typedef enum twipr_spi_comm_callback_id_t {
-    TWIPR_SPI_COMM_CALLBACK_TRAJECTORY_RX,  ///< Callback for trajectory data reception.
-    TWIPR_SPI_COMM_CALLBACK_SAMPLE_TX,      ///< Callback for sample data transmission.
-} twipr_spi_comm_callback_id_t;
+//typedef enum twipr_spi_comm_callback_id_t {
+//    TWIPR_SPI_COMM_CALLBACK_TRAJECTORY_RX,  ///< Callback for trajectory data reception.
+//    TWIPR_SPI_COMM_CALLBACK_SAMPLE_TX,      ///< Callback for sample data transmission.
+//} twipr_spi_comm_callback_id_t;
 
 /**
  * @brief Structure for SPI Communication callbacks.
  *
  * Contains callback functions for trajectory reception and sample transmission events.
  */
-typedef struct twipr_spi_comm_callbacks_t {
-    core_utils_Callback<void, uint16_t> trajectory_rx_callback; ///< Callback for trajectory reception.
-    core_utils_Callback<void, uint16_t> sample_tx_callback;       ///< Callback for sample transmission.
-} twipr_spi_comm_callbacks_t;
+//typedef struct twipr_spi_comm_callbacks_t {
+//    core_utils_Callback<void, uint16_t> trajectory_rx_callback; ///< Callback for trajectory reception.
+//    core_utils_Callback<void, uint16_t> sample_tx_callback;       ///< Callback for sample transmission.
+//} twipr_spi_comm_callbacks_t;
+
+typedef struct bilbo_spi_comm_callbacks_t {
+	core_utils_CallbackContainer<2, uint16_t> trajectory_received;
+	core_utils_CallbackContainer<2, uint16_t> trajectory_command;
+	core_utils_CallbackContainer<2, void> sample_command;
+	core_utils_CallbackContainer<2, void> samples_transmitted;
+} bilbo_spi_comm_callbacks_t;
 
 /**
  * @brief TWIPR SPI Communication class.
@@ -96,6 +108,8 @@ public:
      */
     void start();
 
+    void reset();
+
     /**
      * @brief Register a callback for SPI communication events.
      *
@@ -105,8 +119,7 @@ public:
      * @param callback_id Identifier specifying the callback type.
      * @param callback Callback function to register.
      */
-    void registerCallback(twipr_spi_comm_callback_id_t callback_id,
-                          core_utils_Callback<void, uint16_t> callback);
+    void startListeningForCommand();
 
     /**
      * @brief Stop the SPI transmission.
@@ -132,24 +145,6 @@ public:
      */
     void receiveTrajectoryInputs(uint16_t steps);
 
-    /**
-     * @brief Provide sample data for transmission over SPI (overload).
-     *
-     * Sets the operating mode to transmission and provides data from the default sample buffer.
-     *
-     * @param len Number of samples to be transmitted.
-     */
-    void provideSampleData(uint16_t len);
-
-    /**
-     * @brief Provide sample data for transmission over SPI (overload).
-     *
-     * Sets the operating mode to transmission and provides data from the specified sample buffer.
-     *
-     * @param sample_buffer Pointer to the sample data buffer.
-     * @param len Number of samples to be transmitted.
-     */
-    void provideSampleData(twipr_logging_sample_t *sample_buffer, uint16_t len);
 
     /**
      * @brief SPI receive complete callback.
@@ -176,11 +171,21 @@ public:
     twipr_spi_comm_config_t config;         ///< SPI communication configuration.
     twipr_spi_comm_mode_t mode = TWIPR_SPI_COMM_MODE_NONE; ///< Current SPI operating mode.
 
+    bilbo_spi_comm_callbacks_t callbacks; ///< Structure containing registered SPI callbacks.
+
 private:
+
+    void _handleCommand();
+
     uint8_t _commandBuffer[TWIPR_SPI_COMMAND_MESSAGE_LENGTH]; ///< Buffer for SPI command messages.
     uint16_t _len; ///< Variable to store the length of transmitted data.
     core_hardware_SPI_slave spi_slave; ///< SPI slave interface object.
-    twipr_spi_comm_callbacks_t callbacks; ///< Structure containing registered SPI callbacks.
+
+
+
+
+    bool _samples_read;
+    uint16_t _trajectory_length;
 };
 
 #endif /* COMMUNICATION_TWIPR_SPI_COMMUNICATION_H_ */

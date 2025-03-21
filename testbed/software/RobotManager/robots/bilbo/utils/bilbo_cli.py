@@ -1,6 +1,7 @@
 # from robots.bilbo.bilbo_manager import BILBO_Manager
 # from robots.bilbo.bilbo import BILBO
 from extensions.cli.src.cli import *
+from robots.bilbo.utils.bilbo_utils import test_response_time
 
 
 # BILBO Command Set
@@ -52,6 +53,19 @@ class BILBO_CommandSet(CommandSet):
                                ],
                                description='Beeps the Buzzer')
 
+        speak_command = Command(name='speak',
+                                callback=self.robot.speak,
+                                allow_positionals=True,
+                                arguments=[
+                                    CommandArgument(name='text',
+                                                    type=str,
+                                                    short_name='t',
+                                                    description='Text to speak',
+                                                    is_flag=False,
+                                                    optional=True,
+                                                    default=None)
+                                ],)
+
         mode_command = Command(name='mode',
                                callback=self.robot.control.setControlMode,
                                allow_positionals=True,
@@ -73,6 +87,18 @@ class BILBO_CommandSet(CommandSet):
         read_state_command = Command(name='read',
                                      callback=self.robot.control.getControlState,
                                      description='Reads the current control state and mode', )
+
+        test_communication = Command(name='testComm',
+                                     callback=self.test_communication,
+                                     description='Tests the communication with the robot',
+                                     arguments=[
+                                         CommandArgument(name='iterations',
+                                                         short_name='i',
+                                                         type=int,
+                                                         optional=True,
+                                                         default=10,
+                                                         description='Number of iterations to test')
+                                     ])
 
         statefeedback_command = Command(name='sfg',
                                         callback=self.robot.control.setStateFeedbackGain,
@@ -140,12 +166,49 @@ class BILBO_CommandSet(CommandSet):
             read_control_config_command,
         ])
 
+        test_trajectory_command = Command(name='test',
+                                          allow_positionals=True,
+                                          callback=self.robot.experiments.runTestTrajectory,
+                                          execute_in_thread=True,
+                                          arguments=[
+                                              CommandArgument(name='num',
+                                                              short_name='n',
+                                                              type=int,
+                                                              description='Number of trajectories',
+                                                              optional=False,
+                                                              ),
+                                              CommandArgument(name='time',
+                                                              short_name='t',
+                                                              type=float,
+                                                              description='Time to run the trajectory',
+                                                              optional=False,),
+                                              CommandArgument(name='frequency',
+                                                              short_name='f',
+                                                              type=float,
+                                                              description='Frequency of the Input',
+                                                              optional=True,
+                                                              default=3),
+                                              CommandArgument(name='gain',
+                                                              short_name='g',
+                                                              type=float,
+                                                              description='Gain of the Input',
+                                                              optional=True,
+                                                              default=0.1),
+                                          ])
+
+        experiment_command_set = CommandSet(name='experiment', commands=[test_trajectory_command])
+
         super().__init__(name=f"{robot.id}", commands=[beep_command,
+                                                       speak_command,
                                                        mode_command,
                                                        stop_command,
-                                                       read_state_command],
+                                                       read_state_command,
+                                                       test_communication],
 
-                         child_sets=[control_command_set])
+                         child_sets=[control_command_set, experiment_command_set])
+
+    def test_communication(self, iterations=10):
+        test_response_time(self.robot, iterations=iterations, print_response_time=True)
 
 
 # ======================================================================================================================
@@ -160,157 +223,14 @@ class BILBO_Manager_CommandSet(CommandSet):
                                callback=self.bilbo_manager.emergencyStop,
                                description='Deactivates the control on all BILBO robots', )
 
-        super().__init__(self.name, commands=[stop_command], child_sets=[], description=self.description)
+        list_command = Command(name='list',
+                               callback=self._list_robots,
+                               description='', )
 
+        super().__init__(self.name, commands=[stop_command, list_command], child_sets=[], description=self.description)
 
-# ======================================================================================================================
-#
-#
-# class TWIPR_CommandSet(CommandSet):
-#     robot: BILBO
-#
-#     def __init__(self, robot: BILBO):
-#         super().__init__(name=robot.id)
-#         self.robot = robot
-#
-#
-# # BILBO Manager Command Set
-#
-# # stop
-# # info
-# # list --detail
-# # controlmode -a -m --all
-# # stream
-#
-# class TWIPR_Manager_CommandSet(CommandSet):
-#     name = 'robots'
-#     description = 'Functions related to connected BILBO'
-#
-#     def __init__(self, manager: BILBO_Manager):
-#         super().__init__(name=self.name)
-#
-#         self.manager = manager
-#
-#         self.manager.registerCallback('new_robot', self._newRobot_callback)
-#         self.manager.registerCallback('robot_disconnected', self._robotDisconnected_callback)
-#
-#         self.addCommand(TWIPR_Manager_Command_List(self.manager))
-#         self.addCommand(TWIPR_Manager_Command_Stop(self.manager))
-#         self.addCommand(TWIPR_Manager_Command_Mode(self.manager))
-#
-#     def _newRobot_callback(self, robot, *args, **kwargs):
-#         ...
-#
-#     def _robotDisconnected_callback(self, robot, *args, **kwargs):
-#         ...
-#
-#
-# # ======================================================================================================================
-# class TWIPR_Manager_Command_List(Command):
-#     description = 'Lists all connected BILBO robots'
-#     name = 'list'
-#     manager: BILBO_Manager
-#     arguments = {
-#         'detail': CommandArgument(
-#             name='detail',
-#             type=bool,
-#             short_name='d',
-#             description='Shows detailed information for each robot',
-#             is_flag=True,
-#             default=False
-#         )
-#     }
-#
-#     def __init__(self, manager: BILBO_Manager):
-#         super().__init__(name=self.name, callback=None, description=self.description)
-#         self.manager = manager
-#
-#     def function(self, *args, **kwargs):
-#         if self.manager.connected_robots == 0:
-#             print("No robots connected")
-#             return
-#
-#         for id, robot in self.manager.robots.items():
-#             print(f"ID: \"{id}\" \t Rev: {robot.device.information.revision}")
-#
-#
-# # ======================================================================================================================
-# class TWIPR_Manager_Command_Stop(Command):
-#     description = 'Deactivates the control on selected (or all) BILBO robots'
-#     name = 'stop'
-#     manager: BILBO_Manager
-#     arguments = {
-#         'robot': CommandArgument(
-#             name='robot',
-#             type=str,
-#             short_name='r',
-#             description='ID of the robot',
-#             is_flag=False,
-#             optional=True,
-#             default=None
-#         )
-#     }
-#
-#     def __init__(self, manager: BILBO_Manager):
-#         super().__init__(name=self.name, callback=None, description=self.description, arguments=None)
-#         self.manager = manager
-#
-#     def function(self, robot=None, *args, **kwargs):
-#
-#         if robot is None:
-#             for id, robot in self.manager.robots.items():
-#                 robot.stop()
-#             return
-#
-#         if robot is not None:
-#             if robot in self.manager.robots:
-#                 self.manager.robots[robot].stop()
-#             else:
-#                 logger.warning(f"Robot \"{robot}\" not found.")
-#
-#
-# # ======================================================================================================================
-# class TWIPR_Manager_Command_Mode(Command):
-#     description = 'Sets the control mode of selected (or all) BILBO robots'
-#     name = 'mode'
-#     manager: BILBO_Manager
-#     arguments = {
-#         'mode': CommandArgument(
-#             name='mode',
-#             type=int,
-#             short_name='m',
-#             description='Mode of control (0:off, 1:direct, 2:torque)',
-#             is_flag=False,
-#             optional=False,
-#             default=None
-#         ),
-#         'robot': CommandArgument(
-#             name='robot',
-#             type=str,
-#             short_name='r',
-#             description='ID of the robot',
-#             is_flag=False,
-#             optional=True,
-#             default=None
-#         ),
-#
-#     }
-#
-#     def __init__(self, manager: BILBO_Manager):
-#         super().__init__(name=self.name, callback=None, description=self.description, arguments=None)
-#         self.manager = manager
-#
-#     def function(self, mode: int, robot=None, *args, **kwargs):
-#
-#         if robot is None:
-#             for id, robot in self.manager.robots.items():
-#                 robot.setControlMode(mode)
-#             return
-#
-#         if robot is not None:
-#             if robot in self.manager.robots:
-#                 self.manager.robots[robot].setControlMode(mode)
-#             else:
-#                 logger.warning(f"Robot \"{robot}\" not found.")
-#
-# # ======================================================================================================================
+    def _list_robots(self):
+        output = ""
+        for robot in self.bilbo_manager.robots.values():
+            output += f"{robot.id} \t {robot.device.information.revision} \n"
+        return output

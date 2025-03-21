@@ -13,6 +13,8 @@
 #ifndef COMMUNICATION_TWIPR_COMMUNICATION_H_
 #define COMMUNICATION_TWIPR_COMMUNICATION_H_
 
+#include <bilbo_message.h>
+#include <bilbo_messages.h>
 #include <cstdarg> // For va_list, va_start, va_end
 
 // Include core libraries and hardware-specific communication headers.
@@ -22,7 +24,6 @@
 #include "firmware_defs.h"
 #include "twipr_control.h"
 #include "twipr_sequencer.h"
-#include "twipr_messages.h"
 
 // Define error flag macros for communication error responses.
 #define TWIPR_COMM_ERROR_FLAG_UNKNOWN         0x01  ///< Unknown error flag.
@@ -33,7 +34,7 @@
 #define TWIPR_COMM_ERROR_FLAG_MSG_TYPE        0x06  ///< Error flag for message type mismatches.
 
 // Declare the global register map with 255 entries for communication registers.
-extern core_utils_RegisterMap<255> register_map;
+extern core_utils_RegisterMap<256> register_map;
 
 
 /**
@@ -42,34 +43,18 @@ extern core_utils_RegisterMap<255> register_map;
  * This structure holds callback containers for various communication events.
  */
 typedef struct twipr_communication_callbacks_t {
-    core_utils_CallbackContainer<5, uint16_t> new_trajectory; ///< Callback container for new trajectory events.
+    core_utils_CallbackContainer<5, uint16_t> trajectory_received; ///< Callback container for new trajectory events.
 } twipr_communication_callbacks_t;
 
 // Global logging functions for debugging and informational messages.
-void debug(const char *format, ...);
-void info(const char *format, ...);
-void warning(const char *format, ...);
-void error(const char *format, ...);
+void send_debug(const char *format, ...);
+void send_info(const char *format, ...);
+void send_warning(const char *format, ...);
+void send_error(const char *format, ...);
 
-// Define the buffer size for debug messages.
-#define DEBUG_PRINT_BUFFER_SIZE 100
 
-/**
- * @brief Structure for debug message data.
- *
- * Holds a flag indicating the message type and a message buffer.
- */
-typedef struct debug_message_data_t {
-    uint8_t flag;                             ///< Flag indicating the type of debug message.
-    char message[DEBUG_PRINT_BUFFER_SIZE];    ///< Buffer to hold the debug message.
-} debug_message_data_t;
+void sendMessage(BILBO_Message_t &message);
 
-/**
- * @brief BILBO debug message type.
- *
- * This typedef defines a BILBO message that carries debug information.
- */
-typedef BILBO_Message<debug_message_data_t, MSG_EVENT, MESSAGE_ID_DEBUG> BILBO_Debug_Message;
 
 /**
  * @brief Configuration structure for TWIPR Communication Manager.
@@ -83,7 +68,11 @@ typedef struct twipr_communication_config_t {
     twipr_sequence_input_t *sequence_rx_buffer; ///< Buffer for receiving sequence inputs over SPI.
     uint16_t len_sequence_buffer;           ///< Length of the sequence buffer.
     uint16_t reset_uart_exti;               ///< External interrupt line used for UART reset.
+    UART_HandleTypeDef *modbus_huart;
+    GPIO_TypeDef* modbus_gpio_port;
+    uint16_t modbus_gpio_pin;
 } twipr_communication_config_t;
+
 
 /**
  * @brief TWIPR Communication Manager class.
@@ -123,6 +112,9 @@ public:
      */
     void provideSampleData(twipr_logging_sample_t *buffer);
 
+
+    void resetSPI();
+
     /**
      * @brief Receive trajectory inputs over SPI.
      *
@@ -130,7 +122,7 @@ public:
      *
      * @param steps The number of trajectory steps to receive.
      */
-    void receiveTrajectoryInputs(uint16_t steps);
+//    void receiveTrajectoryInputs(uint16_t steps);
 
     /**
      * @brief Reset the UART interface.
@@ -178,7 +170,7 @@ public:
      * @param format Format string.
      * @param ... Additional arguments.
      */
-    void debug(const char *format, ...);
+    void send_debug(const char *format, ...);
 
     /**
      * @brief Informational logging function.
@@ -188,7 +180,7 @@ public:
      * @param format Format string.
      * @param ... Additional arguments.
      */
-    void info(const char *format, ...);
+    void send_info(const char *format, ...);
 
     /**
      * @brief Warning logging function.
@@ -198,7 +190,7 @@ public:
      * @param format Format string.
      * @param ... Additional arguments.
      */
-    void warning(const char *format, ...);
+    void send_warning(const char *format, ...);
 
     /**
      * @brief Error logging function.
@@ -208,7 +200,7 @@ public:
      * @param format Format string.
      * @param ... Additional arguments.
      */
-    void error(const char *format, ...);
+    void send_error(const char *format, ...);
 
     /**
      * @brief Communication callbacks structure.
@@ -229,6 +221,7 @@ public:
     TWIPR_UART_Communication uart_interface; ///< UART communication interface.
     TWIPR_SPI_Communication spi_interface;   ///< SPI communication interface.
     CAN can;                                 ///< CAN bus communication interface.
+    ModbusMaster modbus;
 
 private:
     // Private callback handlers for UART messages.
@@ -238,7 +231,7 @@ private:
 
     // Private callback handlers for SPI messages.
     void _spi_rxTrajectory_callback(uint16_t len);
-    void _spi_txSamples_callback(uint16_t len);
+    void _spi_txSamples_callback();
 
     /**
      * @brief Helper function to send an error response over UART.
@@ -251,6 +244,8 @@ private:
     void _uartResponseError(core_comm_SerialMessage *incoming_message, uint8_t error_code);
 
     // Private buffers for sample data and debug messages.
+    twipr_logging_sample_t _sample_buffer_hold[TWIPR_FIRMWARE_SAMPLE_BUFFER_SIZE]; ///< Buffer for sample data transmission.
+
     twipr_logging_sample_t _sample_buffer_tx[TWIPR_FIRMWARE_SAMPLE_BUFFER_SIZE]; ///< Buffer for sample data transmission.
     BILBO_Debug_Message _debug_message; ///< Debug message object for logging.
 };

@@ -119,8 +119,8 @@ class DeviceManager:
 
         message = TCP_JSON_Message()
         message.type = 'event'
+        message.event = 'sync'
         message.data = {
-            'event': 'sync',
             'time': time.time()
         }
         device.send(message)
@@ -130,8 +130,8 @@ class DeviceManager:
         message = TCP_JSON_Message()
 
         message.type = 'event'
+        message.event = 'heartbeat'
         message.data = {
-            'event': 'heartbeat',
             'time': time.time()
         }
         for id, device in self.devices.items():

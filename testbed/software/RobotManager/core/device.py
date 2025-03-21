@@ -31,11 +31,9 @@ class DeviceCallbacks:
 class DeviceEvents:
     rx: ConditionEvent
     stream: ConditionEvent
-    event: ConditionEvent
+    event: ConditionEvent = ConditionEvent(flags=[('type', str)])
     timeout: ConditionEvent
 
-
-# ======================================================================================================================
 
 # ======================================================================================================================
 class Request:
@@ -43,7 +41,7 @@ class Request:
     id: int
 
     def __init__(self):
-        self.event = ConditionEvent(persist_set_state=True)
+        self.event = ConditionEvent()
 
 
 # ======================================================================================================================
@@ -216,7 +214,7 @@ class Device:
         self.send(msg)
 
         if request_response:
-            if request.event.wait(timeout=timeout):
+            if request.event.wait(timeout=timeout, stale_event_time=0.1):
                 response_time = (time.perf_counter() - time1) * 1000
                 # logger.warning(f"Got response for function \"{function}\"! Response time: {response_time:.0f}")
                 # Get the response data
@@ -298,15 +296,17 @@ class Device:
     # ------------------------------------------------------------------------------------------------------------------
     def _handleEventMessage(self, message: TCP_JSON_Message):
 
-        if message.data['event'] == 'device_identification':
+        if message.event == 'device_identification':
             self._handleIdentificationEvent(message.data)
-        elif message.data['event'] == 'heartbeat':
+        elif message.event == 'heartbeat':
             self.heartbeat_timer.reset()
 
+
+        # print(f"EVENT: {message.event}")
         for callback in self.callbacks.event:
             callback(message, self)
 
-        self.events.event.set(resource=message)
+        self.events.event.set(resource=message, flags={'type': message.event})
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleStreamMessage(self, message: TCP_JSON_Message):
@@ -354,7 +354,7 @@ class Device:
             callback(self)
 
     # ------------------------------------------------------------------------------------------------------------------
-    def _addRequest(self, message_id) ->Request:
+    def _addRequest(self, message_id) -> Request:
         read_request = Request()
         read_request.id = message_id
         self._readRequests[read_request.id] = read_request
