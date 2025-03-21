@@ -91,8 +91,8 @@ class WorkerPool:
             self.worker_finished.append(False)
             self.data.append(None)
             self.errors.append(None)
-            worker.completion_function.register(self._worker_callback, parameters={'id': i})
-            worker.error_function.register(self._worker_error_callback, parameters={'id': i})
+            worker.completion_function.register(self._worker_callback, inputs={'id': i})
+            worker.error_function.register(self._worker_error_callback, inputs={'id': i})
 
         self._start_time = time.time()
         for worker in self.workers:

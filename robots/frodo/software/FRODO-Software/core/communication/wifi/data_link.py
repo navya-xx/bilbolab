@@ -169,7 +169,7 @@ class Command:
         description (str): Description of the command.
     """
 
-    def __init__(self, identifier: str, callback: (callable, Callback), arguments, description: str):
+    def __init__(self, identifier: str, callback: (callable, Callback), arguments, description: str, execute_in_thread=False):
         """
         Initializes a Command instance.
 
@@ -183,6 +183,7 @@ class Command:
         self.identifier = identifier
         self.callback = callback
         self.description = description
+        self.execute_in_thread = execute_in_thread
 
         # Convert arguments to a dictionary if provided as a list.
         if isinstance(arguments, dict):

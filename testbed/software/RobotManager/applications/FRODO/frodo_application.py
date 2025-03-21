@@ -340,15 +340,14 @@ class FRODO_Application:
     
     # ------------------------------------------------------------------------------------------------------------------
     def _read_agents(self, timeout):
-        
         if self.read_worker_pool == None or len(self.read_worker_pool.workers) != len(self.agents):
-            self._set_agent_read_pool()    
+            self._set_agent_read_pool()
         else:
             self.read_worker_pool.reset()
-        
+
         self.read_worker_pool.start()
         results = self.read_worker_pool.wait(timeout=timeout)
-
+        #
         if not all(results):
             self.logger.warning(f"Read Agents: Not all workers finished successfully: {results}")
             self.logger.warning(f"Errors: {self.read_worker_pool.errors}")

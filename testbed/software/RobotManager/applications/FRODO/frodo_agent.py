@@ -89,10 +89,10 @@ class FRODO_Agent:
             for measurement in data['sensors']['aruco_measurements']:
                 tvec_unc = uncertainty_distance(float(measurement['translation_vec'][0]),float(measurement['translation_vec'][1]))
                 psi_unc = uncertainty_angle(float(measurement['translation_vec'][0]),float(measurement['translation_vec'][1]))
-                tmp = FRODO_Aruco_Measurements(marker_id=measurement['id'], 
-                                               translation_vec=measurement['translation_vec'], 
-                                               tvec_uncertainty=tvec_unc, 
-                                               psi=measurement['psi'], 
+                tmp = FRODO_Aruco_Measurements(marker_id=measurement['id'],
+                                               translation_vec=measurement['translation_vec'],
+                                               tvec_uncertainty=tvec_unc,
+                                               psi=measurement['psi'],
                                                psi_uncertainty=psi_unc
                                                )
                 self.measurements.aruco_measurements.append(tmp)

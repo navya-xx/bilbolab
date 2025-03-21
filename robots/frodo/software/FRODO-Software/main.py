@@ -17,6 +17,7 @@ def main():
     streamer.image_fetcher = frodo.sensors.aruco_detector.getOverlayFrame
     streamer.start()
 
+
     # frodo.control.setMode(FRODO_Control_Mode.EXTERNAL)
     # frodo.control.setSpeed(0,1)
     # time.sleep(1)

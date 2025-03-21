@@ -138,6 +138,8 @@ class FRODO:
             self.board.setRGBLEDExtern(color=(int(15), int(20), int(0)))
         elif self.id == 'frodo2':
             self.board.setRGBLEDExtern(color=(int(64 / 10), int(224 / 10), int(208 / 8)))
+        elif self.id == 'frodo3':
+            self.board.setRGBLEDExtern(color=(int(255 / 10), int(0 / 10), int(0 / 8)))
         self.board.beep()
 
     # ------------------------------------------------------------------------------------------------------------------

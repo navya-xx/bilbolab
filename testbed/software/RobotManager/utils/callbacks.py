@@ -159,8 +159,9 @@ class CallbackContainer:
         if isinstance(callback, Callback):
             self.callbacks.remove(callback)
         elif callable(callback):
-            cb = next(cb for cb in self.callbacks if cb.function == callback)
-            self.callbacks.remove(cb)
+            cb = next((cb for cb in self.callbacks if cb.function == callback), None)
+            if cb is not None:
+                self.callbacks.remove(cb)
 
     def call(self, *args, **kwargs):
         """
