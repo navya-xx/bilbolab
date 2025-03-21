@@ -3,6 +3,7 @@ import dataclasses
 import time
 import math
 
+from applications.FRODO.utilities.uncertainty.uncertainty import uncertainty_distance, uncertainty_angle
 from robots.frodo.frodo import Frodo
 from utils.teleplot import sendValue
 from utils.time import PrecisionTimer
@@ -86,9 +87,13 @@ class FRODO_Agent:
 
             self.measurements.aruco_measurements = []
             for measurement in data['sensors']['aruco_measurements']:
+                tvec_unc = uncertainty_distance(float(measurement['translation_vec'][0]),float(measurement['translation_vec'][1]))
+                psi_unc = uncertainty_angle(float(measurement['translation_vec'][0]),float(measurement['translation_vec'][1]))
                 tmp = FRODO_Aruco_Measurements(marker_id=measurement['id'], 
-                                               translation_vec=measurement['translation_vec'], tvec_uncertainty=measurement['tvec_uncertainty'], 
-                                               psi=measurement['psi'], psi_uncertainty=measurement['psi_uncertainty']
+                                               translation_vec=measurement['translation_vec'], 
+                                               tvec_uncertainty=tvec_unc, 
+                                               psi=measurement['psi'], 
+                                               psi_uncertainty=psi_unc
                                                )
                 self.measurements.aruco_measurements.append(tmp)
         else:

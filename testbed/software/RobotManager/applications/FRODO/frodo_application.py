@@ -24,7 +24,7 @@ from utils.sound.sound import speak
 from utils.thread_worker import ThreadWorker, WorkerPool
 from utils.logging_utils import Logger, setLoggerLevel
 import robots.frodo.frodo_definitions as frodo_definitions
-# import utilities.orientation.plot_2d.dynamic.dynamic_2d_plotter as plotter
+# import utils.orientation.plot_2d.dynamic.dynamic_2d_plotter as plotter
 import applications.FRODO.utilities.web_gui.FRODO_Web_Interface as plotter
 from utils.orientation.orientation_2d import rotate_vector
 from utils.teleplot import sendValue
@@ -70,7 +70,7 @@ class FRODO_Application:
             self.tracker.callbacks.new_sample.register(self._tracker_new_sample)
             self.tracker.callbacks.description_received.register(self._tracker_description_received)
 
-        self.experiment_handler = FRODO_ExperimentHandler(self.manager, self.tracker)
+        self.experiment_handler = FRODO_ExperimentHandler(self.manager, self.tracker, self.agents)
 
         self.cli_gui = CLI_GUI_Server(address='localhost', port=8090)
 
