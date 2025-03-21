@@ -109,6 +109,5 @@ class FRODO_Communication:
             except Exception as e:
                 logger.error(f"Error while parsing sample stream: {e}")
                 return
-
             data: FRODO_LL_SAMPLE = struct_to_dataclass(data_struct, FRODO_LL_SAMPLE)
             self.callbacks.rx_stm32_sample.call(data)

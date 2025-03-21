@@ -83,10 +83,8 @@ class FRODO_Control:
             self._update()
             self.update_timer.sleep_until_next()
 
-
     # ------------------------------------------------------------------------------------------------------------------
     def _update(self):
-        return
         speed_left = 0.0
         speed_right = 0.0
         if self.mode == FRODO_Control_Mode.EXTERNAL:
@@ -106,7 +104,6 @@ class FRODO_Control:
 
     # ------------------------------------------------------------------------------------------------------------------
     def setSpeed(self, speed_left, speed_right):
-        print("Set Speed")
         input_struct = motor_input_struct(left=speed_left, right=speed_right)
         self.communication.serial.executeFunction(module=FRODO_LL_ADDRESS_TABLE,
                                                   address=FRODO_LL_Functions.FRODO_LL_FUNCTION_SET_SPEED,
