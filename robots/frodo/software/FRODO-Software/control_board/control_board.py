@@ -87,10 +87,11 @@ class RobotControl_Board:
             value=0,
         )
 
-        self.wifi_interface.callbacks.connected.register(self.setStatusLed, parameters={'state': True},
+        self.wifi_interface.callbacks.connected.register(self.setStatusLed, inputs={'state': True},
                                                          discard_inputs=True)
-        self.wifi_interface.callbacks.disconnected.register(self.setStatusLed, parameters={'state': False},
+        self.wifi_interface.callbacks.disconnected.register(self.setStatusLed, inputs={'state': False},
                                                             discard_inputs=True)
+
 
         self.exit = ExitHandler()
         self.exit.register(self.handle_exit)
