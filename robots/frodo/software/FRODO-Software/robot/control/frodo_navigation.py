@@ -8,8 +8,9 @@ logger.setLevel('INFO')
 
 VELOCITY_AT_1 = 206
 DIST_BETWEEN_MOTORS = 140  # [mm]
-TIME_SCALER = 4 / 3
-RADIUS_SCALER = 4 / 5
+TIME_SCALER = 185/180
+TIME_CONSTANT = 0.1
+RADIUS_SCALER = 13/10
 TASK_SLEEP_TIME = 0.01
 
 
@@ -167,9 +168,12 @@ class FRODO_Navigator:
                 v_l, v_r = self._vrVlFromRadius(radius)
             else:
                 v_r, v_l = self._vrVlFromRadius(radius)
-    
-            estimated_time = TIME_SCALER * (dphi * DIST_BETWEEN_MOTORS) / (v_r - v_l)
-    
+
+            if radius == 0:
+                estimated_time = (15/12) * (dphi * DIST_BETWEEN_MOTORS) / (v_r - v_l) + TIME_CONSTANT
+            else:
+                estimated_time = (TIME_SCALER * (2*abs(dphi)*abs(radius))) / ((v_r + v_l)) + TIME_CONSTANT
+            
         s_l = self._speedToMotorInput(v_l)
         s_r = self._speedToMotorInput(v_r)
         with self._speed_lock:
@@ -227,8 +231,8 @@ class FRODO_Navigator:
     @staticmethod
     def _vrVlFromRadius(radius):
         """Calculate left and right wheel velocity necessary for radius"""
-        ratio_vr_vl = (RADIUS_SCALER * 2 * radius + DIST_BETWEEN_MOTORS) / (
-                    RADIUS_SCALER * 2 * radius - DIST_BETWEEN_MOTORS)
+        ratio_vr_vl = (radius + RADIUS_SCALER *  DIST_BETWEEN_MOTORS/2) / (
+                    radius - RADIUS_SCALER * DIST_BETWEEN_MOTORS/2)
         v_0 = VELOCITY_AT_1
         v_1 = v_0 / ratio_vr_vl
 

@@ -7,3 +7,5 @@ workspace.xml
 node_modules/
 package-lock.json
 Debug/
+*.mp3
+testbed/software/RobotManager/utils/sound/tts_files/index.json
