@@ -18,7 +18,7 @@ def callback_new_joystick(joystick, *args, **kwargs):
 
 def callback_button(joystick: Joystick, button, eventtype, *args, **kwargs):
     print(f"Button {button}, Event: {eventtype}, Joystick: {joystick.guid}")
-    joystick.rumble(strength=1, duration=500)
+    joystick.rumble(strength=0.5, duration=0.75)
 
 
 def joyhat_callback(joystick, direction):

@@ -84,7 +84,7 @@ if __name__ == "__main__":
         print("Opened '{}' device (serial number: '{}')".format(deck.deck_type(), deck.get_serial_number()))
 
         # Set initial screen brightness to 30%.
-        deck.set_brightness(30)
+        deck.set_brightness(100)
 
         # Pre-render a list of animation frames for each source image, in the
         # native display format so that they can be quickly sent to the device.

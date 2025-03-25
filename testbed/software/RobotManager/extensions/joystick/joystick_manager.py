@@ -9,10 +9,10 @@ from extensions.joystick.Mappings.joystick_mappings import joystick_mappings
 from utils.callbacks import callback_handler, CallbackContainer, Callback
 from os import environ
 
-
 from utils.events import event_handler, ConditionEvent
 from utils.exit import ExitHandler
 
+environ['SDL_JOYSTICK_HIDAPI_PS4_RUMBLE'] = '1'
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 
@@ -467,9 +467,7 @@ class Joystick:
     # ------------------------------------------------------------------------------------------------------------------
     def _buttonDown(self, button: int):
         callbacks_num = [callback for callback in self.button_callbacks if
-                     callback.button == button and callback.event == 'down']
-
-
+                         callback.button == button and callback.event == 'down']
 
         logger.debug(f"Joystick: {self.id}, Event: Button {button} down")
 
@@ -485,7 +483,6 @@ class Joystick:
                                   callback.button == button_name and callback.event == 'down']
                 for callback in callbacks_name:
                     callback(joystick=self, button=button_name, event='down')
-
 
         self.events.button.set(resource=button, flags={'button': [button, button_name]})
         # self.events.button.set(resource=button, flags={'button': button_name})
