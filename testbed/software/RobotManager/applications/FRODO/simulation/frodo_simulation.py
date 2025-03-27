@@ -127,10 +127,24 @@ class FRODO_VisionAgent(FRODO_DynamicAgent):
                                other_agent_pos=other_agent.configuration['pos'].value)
 
             if in_fov:
+
+                vec = other_agent.configuration['pos'].value - self.configuration['pos'].value
+                psi = qmt.wrapToPi(other_agent.configuration['psi'].value - self.configuration['psi'].value)
+
+                # Transform vec into agent's coordinate system
+                own_psi = self.configuration['psi'].value
+
+                R = np.array([
+                    [math.cos(own_psi), math.sin(own_psi)],
+                    [-math.sin(own_psi), math.cos(own_psi)]
+                ])
+
+                vec_transformed = R @ vec
+
                 measurement = FRODO_Agent_Measurement(
                     agent_id=other_agent.agent_id,
-                    vec=other_agent.configuration['pos'].value - self.configuration['pos'].value,
-                    psi=qmt.wrapToPi(other_agent.configuration['psi'].value - self.configuration['psi'].value)
+                    vec=vec_transformed,
+                    psi=psi
                 )
 
                 self.measurements[other_agent.agent_id] = measurement

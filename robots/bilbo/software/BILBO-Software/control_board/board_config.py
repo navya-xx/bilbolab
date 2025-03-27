@@ -142,4 +142,4 @@ def generate_board_config(rev):
 
 
 if __name__ == '__main__':
-    generate_board_config('rev4')
+    generate_board_config('rev4.1')

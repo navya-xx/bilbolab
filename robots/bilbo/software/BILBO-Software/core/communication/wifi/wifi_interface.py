@@ -1,4 +1,7 @@
+import enum
 import threading
+import time
+
 from core.communication.protocol import Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
 from core.communication.wifi.wifi_connection import WIFI_Connection
@@ -503,13 +506,19 @@ class WIFI_Interface:
         Args:
             message: The event message.
         """
-        match message.event:
-            case 'sync':
-                self.callbacks.sync.call(message.data)
-            case 'heartbeat':
-                self._handleHeartbeatMessage(message.data)
-            case _:
-                ...
+        if message.event == 'sync':
+            self.callbacks.sync.call(message.data)
+        elif message.event == 'heartbeat':
+            self._handleHeartbeatMessage(message.data)
+        else:
+            ...
+        # match message.event:
+        #     case 'sync':
+        #         self.callbacks.sync.call(message.data)
+        #     case 'heartbeat':
+        #         self._handleHeartbeatMessage(message.data)
+        #     case _:
+        #         ...
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleHeartbeatMessage(self, data):
@@ -517,6 +526,8 @@ class WIFI_Interface:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _heartbeat_timeout_callback(self):
+        return
+
         self.callbacks.heartbeat_timeout.call()
         self.heartbeat_timer.stop()
         self.state = WIFI_Interface_State.TIMEOUT

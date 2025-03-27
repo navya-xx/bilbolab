@@ -1,7 +1,7 @@
 from utils.files import fileExists, deleteFile, relativeToFullPath
 from utils.json_utils import readJSON, writeJSON
 from paths import config_path
-
+import math
 # hardware_definition = {
 #     'electronics': {
 #         'board_revision': 'v4',
@@ -78,7 +78,7 @@ hardware_definition_small_bilbo = {
         'type': 'small'
     },
     'settings': {
-        'theta_offset': math.radians(2.0),
+        'theta_offset': math.radians(0),
     },
     'electronics': {
         'board_revision': 'v4',
@@ -109,12 +109,19 @@ hardware_definition_small_bilbo = {
 }
 
 
-def generate_hardware_definition():
+def generate_hardware_definition(size:str):
     file = relativeToFullPath(f"{config_path}hardware.json")
     if fileExists(file):
         deleteFile(file)
 
-    writeJSON(file, hardware_definition_big_bilbo)
+    if size == 'small':
+        hardware_definition = hardware_definition_small_bilbo
+    elif size == 'big':
+        hardware_definition = hardware_definition_big_bilbo
+    else:
+        raise ValueError("Size must be either 'small' or 'big'")
+
+    writeJSON(file, hardware_definition)
 
 
 def get_hardware_definition():
@@ -127,4 +134,4 @@ def get_hardware_definition():
 
 
 if __name__ == '__main__':
-    generate_hardware_definition()
+    generate_hardware_definition(size='small')
