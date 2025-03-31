@@ -20,4 +20,4 @@ def setup_bilbo(ID):
 
 
 if __name__ == '__main__':
-    setup_bilbo('bilbo3')
+    setup_bilbo('bilbo1')

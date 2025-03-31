@@ -108,6 +108,40 @@ hardware_definition_small_bilbo = {
     }
 }
 
+hardware_definition_normal_bilbo = {
+    'model': {
+        'type': 'normal'
+    },
+    'settings': {
+        'theta_offset': math.radians(0),
+    },
+    'electronics': {
+        'board_revision': 'v4',
+        'shield': None,
+        'display': 'oled_bw_128x64',
+        'sound': {
+            'active': True,
+            'gain': 0.5,
+        },
+        'buttons': {
+            'primary': {
+                'exists': True,
+                'type': 'internal',
+                'pin': 5,
+                'led': {
+                    'exists': True,
+                    'type': 'internal',
+                    'pin': 4,
+                }
+            },
+            'secondary': {
+                'exists': False,
+            },
+        },
+        'leds': {},
+        'sensors': {},
+    }
+}
 
 def generate_hardware_definition(size:str):
     file = relativeToFullPath(f"{config_path}hardware.json")
@@ -118,6 +152,8 @@ def generate_hardware_definition(size:str):
         hardware_definition = hardware_definition_small_bilbo
     elif size == 'big':
         hardware_definition = hardware_definition_big_bilbo
+    elif size == 'normal':
+        hardware_definition = hardware_definition_normal_bilbo
     else:
         raise ValueError("Size must be either 'small' or 'big'")
 
@@ -134,4 +170,4 @@ def get_hardware_definition():
 
 
 if __name__ == '__main__':
-    generate_hardware_definition(size='small')
+    generate_hardware_definition(size='normal')
