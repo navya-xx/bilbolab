@@ -40,6 +40,7 @@ class FRODO_Algorithm_Simulated:
                 input_covariance=np.eye(2) * 0,
                 measurements=[],
                 graph_root=None,
+                graph_root_index=None,
                 is_graph_root=False,
             )
             index += 1
@@ -78,32 +79,32 @@ class FRODO_Algorithm_Simulated:
 
 def test_frodo_algorithm():
     agents = {
-        'frodo1_v': {
-            'fov_deg': 120,
+        'frodo0_v': {
+            'fov_deg': 40,
             'view_range': 2,
             'position': [0, 0],
             'initial_guess': [0, 0, 0],
-            'psi': -math.pi,
-            'uncertainty': [0,0,0],
+            'psi': math.radians(180),
+            'uncertainty': [0, 0, 0],
             'leader': True
         },
-        'frodo2_v': {
+        'frodo1_v': {
             'fov_deg': 30,
             'view_range': 1.5,
-            'position': [0.5, 0.5],
+            'position': [0, 1],
             # 'initial_guess': [0.5, 1, 1],
-            'initial_guess': [4,5,6],
-            'psi': 0.75*math.pi,
-            'uncertainty': [1e2, 1e2, 1e3],
+            'initial_guess': [1, 1, 0.1],
+            'psi': math.radians(0),
+            'uncertainty': [1e2, 2e2, 1e3],
             'leader': False
         },
-        'frodo3_v': {
+        'frodo2_v': {
             'fov_deg': 40,
             'view_range': 1.5,
-            'position': [0, 1],
+            'position': [1, 1],
             # 'initial_guess': [0, 0, 2],
-            'initial_guess': [1,2,3],
-            'psi': -math.pi,
+            'initial_guess': [1, 2, 0],
+            'psi': math.radians(0),
             'uncertainty': [1e2, 1e2, 1e3],
             'leader': False
         },
@@ -122,6 +123,13 @@ def test_frodo_algorithm():
     app = FRODO_Algorithm_Simulated()
     app.init(agents)
     app.start()
+
+    time.sleep(5)
+
+    frodo0 = app.simulation.agents['frodo0_v']
+    frodo0.setConfiguration(
+        dimension='psi',
+        value=math.radians(90))
 
     while True:
         time.sleep(1)

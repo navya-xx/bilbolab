@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from applications.FRODO.algorithm.ekf_relative_states_with_subgraphs import CentralizedLocationAlgorithm, VisionAgent, \
+from applications.FRODO.algorithm.centralized_ekf_old import CentralizedLocationAlgorithm, VisionAgent, \
     VisionAgentMeasurement
 from applications.FRODO.simulation.frodo_simulation import FRODO_Simulation, FRODO_ENVIRONMENT_ACTIONS
 
@@ -39,8 +39,6 @@ class FRODO_Algorithm_Simulated:
                 input=np.array([0, 0]),
                 input_covariance=np.eye(2) * 0,
                 measurements=[],
-                graph_root=None,
-                is_graph_root=False,
             )
             index += 1
 
@@ -60,7 +58,7 @@ class FRODO_Algorithm_Simulated:
                     target=data.agent_id,
                     target_index=self.algorithm.getAgentIndex(data.agent_id),
                     measurement=np.array([data.vec[0], data.vec[1], data.psi]),
-                    measurement_covariance=np.eye(3) * 1e-9
+                    measurement_covariance=np.eye(3) * 1e-8
                 )
                 # print(f"{name}->{data.agent_id}: {algorithm_measurement}")
                 self.algorithm.agents[name].measurements.append(algorithm_measurement)
@@ -83,17 +81,16 @@ def test_frodo_algorithm():
             'view_range': 2,
             'position': [0, 0],
             'initial_guess': [0, 0, 0],
-            'psi': -math.pi,
-            'uncertainty': [0,0,0],
+            'psi': 0,
+            'uncertainty': [1e-6, 1e-6, 1e-6],
             'leader': True
         },
         'frodo2_v': {
             'fov_deg': 30,
             'view_range': 1.5,
             'position': [0.5, 0.5],
-            # 'initial_guess': [0.5, 1, 1],
-            'initial_guess': [4,5,6],
-            'psi': 0.75*math.pi,
+            'initial_guess': [0, 0, 0],
+            'psi': math.radians(135),
             'uncertainty': [1e2, 1e2, 1e3],
             'leader': False
         },
@@ -101,22 +98,11 @@ def test_frodo_algorithm():
             'fov_deg': 40,
             'view_range': 1.5,
             'position': [0, 1],
-            # 'initial_guess': [0, 0, 2],
-            'initial_guess': [1,2,3],
-            'psi': -math.pi,
+            'initial_guess': [0, 0, 0],
+            'psi': math.radians(-90),
             'uncertainty': [1e2, 1e2, 1e3],
             'leader': False
         },
-        # 'frodo4_v': {
-        #     'fov_deg': 40,
-        #     'view_range': 1.25,
-        #     'position': [3,0],
-        #     # 'initial_guess': [0, 0, 2],
-        #     'initial_guess': [0, 0, 0],
-        #     'psi': 0,
-        #     'uncertainty': [5e10, 5e10, 6e10],
-        #     'leader': False
-        # }
     }
 
     app = FRODO_Algorithm_Simulated()

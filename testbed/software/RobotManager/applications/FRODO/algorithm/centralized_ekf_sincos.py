@@ -9,6 +9,8 @@ import pandas as pd
 logger = Logger('EKF')
 logger.setLevel("INFO")
 
+AGENT_STATE_DIM = 4
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 @dataclasses.dataclass
@@ -40,7 +42,6 @@ class CentralizedLocationAlgorithm:
     Ts: float
     state: np.ndarray
     state_covariance: np.ndarray
-
     step: int = 0
 
     def __init__(self, Ts):
@@ -50,15 +51,18 @@ class CentralizedLocationAlgorithm:
         self.agents = agents
 
         # Build the state:
-        self.state = np.zeros(len(agents) * 3)
+        self.state = np.zeros(len(agents) * AGENT_STATE_DIM)
+
         for i, agent in enumerate(agents.values()):
-            self.state[i * 3:(i + 1) * 3] = agent.state
+            agent_state = self.augmentAgentState(agent.state)
+            self.state[i * AGENT_STATE_DIM:(i + 1) * AGENT_STATE_DIM] = agent.state
 
         logger.info(f"State: {self.state}")
 
         # Build the state covariance
         self.state_covariance = np.zeros((len(agents) * 3, len(agents) * 3))
         for i, agent in enumerate(agents.values()):
+            agent_covariance = self.augmentAgentCovariance(agent.state_covariance)
             self.state_covariance[i * 3:(i + 1) * 3, i * 3:(i + 1) * 3] = agent.state_covariance
 
         logger.info(f"State covariance: {self.state_covariance}")
@@ -77,6 +81,7 @@ class CentralizedLocationAlgorithm:
             # STEP 3: CALCULATE SPARSE MEASUREMENT JACOBIAN
             H = self.measurementJacobian_sparse(measurements)
 
+            H[:, 0:3] = 0
             # STEP 4: CALCULATE THE KALMAN GAIN
             W = self.buildMeasurementCovariance_sparse(measurements)
             K = P_hat_pre @ H.T @ np.linalg.inv(H @ P_hat_pre @ H.T + W)
@@ -90,12 +95,12 @@ class CentralizedLocationAlgorithm:
             # STEP 7: UPDATE
             diff = y - y_est
 
-            # Wrap all angle values
-            for i in range(len(diff)):
-                if i % 3 == 2:
-                    diff[i] = qmt.wrapToPi(diff[i])
-                else:
-                    continue
+            # # Wrap all angle values
+            # for i in range(len(diff)):
+            #     if i % 3 == 2:
+            #         diff[i] = qmt.wrapToPi(diff[i])
+            #     else:
+            #         continue
 
             correction_term = K @ diff
             new_state = x_hat_pre + K @ diff
@@ -129,8 +134,27 @@ class CentralizedLocationAlgorithm:
             print("--------------------------------")
             print(f"Step: {self.step}")
             for agent in self.agents.values():
-                print(f"{agent.id}: \t x: {agent.state[0]:.1f} \t y: {agent.state[1]:.1f} \t psi: {agent.state[2]:.1f} \t Cov: {np.linalg.norm(agent.state_covariance, 'fro'):.1f}")
+                print(
+                    f"{agent.id}: \t x: {agent.state[0]:.3f} \t y: {agent.state[1]:.3f} \t psi: {agent.state[2]:.2f} \t Cov: {np.linalg.norm(agent.state_covariance, 'fro'):.1f}")
 
+    # ------------------------------------------------------------------------------------------------------------------
+    def augmentAgentState(self, state):
+
+        state = np.asarray(state)
+        assert (len(state) == 3)
+
+        augmented_state = np.array([
+            state[0],
+            state[1],
+            np.sin(state[2]),
+            np.cos(state[2]),
+        ])
+
+        return augmented_state
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def augmentAgentCovariance(self, covariance):
+        ...
     # ------------------------------------------------------------------------------------------------------------------
     def predictionAgent(self, state: np.ndarray, input: np.ndarray):
         """
@@ -256,9 +280,37 @@ class CentralizedLocationAlgorithm:
         ])  # TODO: Do i need some wrapping here?
         return h_source_target
 
-    # # ------------------------------------------------------------------------------------------------------------------
-    # def calculatePredictionCovariance(self, state_covariance, dynamics_jacobian, dynamics_noise_covariance):
-    #     return dynamics_jacobian @ state_covariance @ dynamics_jacobian.T + dynamics_noise_covariance
+    # ------------------------------------------------------------------------------------------------------------------
+    def calculatePredictionCovariance(self, state_covariance, dynamics_jacobian, dynamics_noise_covariance):
+        return dynamics_jacobian @ state_covariance @ dynamics_jacobian.T + dynamics_noise_covariance
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def measurementJacobian(self):
+
+        H = np.zeros((3 * (len(self.agents) ** 2), 3 * len(self.agents)))
+
+        for i in range(len(self.agents)):
+            sub_H = np.zeros((3 * len(self.agents), 3 * len(self.agents)))
+
+            for ii in range(len(self.agents)):
+                for jj in range(len(self.agents)):
+                    if i == ii:
+                        continue
+
+                    if jj == i:
+                        H_agent = self.measurementJacobianAgents(self.getAgentByIndex(i), self.getAgentByIndex(ii), 1)
+                        pass
+                    elif ii == jj:
+                        H_agent = self.measurementJacobianAgents(self.getAgentByIndex(i), self.getAgentByIndex(jj), 2)
+                        pass
+                    else:
+                        continue
+
+                    sub_H[3 * ii:3 * (ii + 1), 3 * jj:3 * (jj + 1)] = H_agent
+                    pass
+
+            H[3 * len(self.agents) * i:3 * len(self.agents) * (i + 1), :] = sub_H
+        return H
 
     # ------------------------------------------------------------------------------------------------------------------
     def measurementJacobian_sparse(self, measurements: list[VisionAgentMeasurement]) -> np.ndarray:
@@ -283,7 +335,7 @@ class CentralizedLocationAlgorithm:
             H_meas[:, 3 * index_source:3 * (index_source + 1)] = H_source
             H_meas[:, 3 * index_target:3 * (index_target + 1)] = H_target
 
-            H[3*i:3*(i+1), :] = H_meas
+            H[3 * i:3 * (i + 1), :] = H_meas
 
         return H
 
@@ -320,6 +372,7 @@ class CentralizedLocationAlgorithm:
             y_est[i * 3:(i + 1) * 3] = predicted_measurement.flatten()
 
         return y_est
+
     # ------------------------------------------------------------------------------------------------------------------
     def measurementJacobianAgents(self, agent_source, agent_target, reference_agent):
         assert (reference_agent in [1, 2])
@@ -348,6 +401,105 @@ class CentralizedLocationAlgorithm:
         else:
             return None
         return H
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def measurementPrediction(self):
+
+        prediction_vector = np.zeros(3 * len(self.agents) ** 2)
+
+        for i in range(len(self.agents)):
+            agent_from = self.getAgentByIndex(i)
+            if agent_from is None:
+                raise ValueError(f"Agent with index {i} does not exist.")
+            for j in range(len(self.agents)):
+                agent_to = self.getAgentByIndex(j)
+                if agent_to is None:
+                    raise ValueError(f"Agent with index {j} does not exist.")
+
+                if i == j:
+                    continue
+
+                predicted_measurement = self.measurementPredictionAgent(agent_from.state, agent_to.state)
+                prediction_vector[i * len(self.agents) * 3 + 3 * j:i * len(self.agents) * 3 + 3 * (
+                        j + 1)] = predicted_measurement.flatten()
+                pass
+
+        return prediction_vector
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def buildMeasurementVector(self):
+
+        y = np.zeros(3 * len(self.agents) ** 2)
+        for i in range(len(self.agents)):
+            agent_from = self.getAgentByIndex(i)
+            if agent_from is None:
+                raise ValueError(f"Agent with index {i} does not exist.")
+
+            for j in range(len(self.agents)):
+                agent_to = self.getAgentByIndex(j)
+                if agent_to is None:
+                    raise ValueError(f"Agent with index {j} does not exist.")
+
+                if i == j:
+                    continue
+
+                # Check if agent from has a measurement to agent_to in its measurements
+                measurement_found = False
+                measurement: VisionAgentMeasurement = None
+                for m in agent_from.measurements:
+                    if m.target_index == j:
+                        measurement_found = True
+                        measurement = m
+                        break
+
+                if measurement_found:
+
+                    y[i * len(self.agents) * 3 + 3 * j:i * len(self.agents) * 3 + 3 * (j + 1)] = measurement.measurement
+                else:
+                    continue
+
+        return y
+
+    def buildMeasurementCovariance(self):
+
+        value_measurement_exists = 1e-5
+        value_measurement_not_exists = 1e9
+
+        W = 0 * np.ones((3 * len(self.agents) ** 2, 3 * len(self.agents) ** 2))
+
+        for i in range(len(self.agents)):
+            agent_from = self.getAgentByIndex(i)
+            if agent_from is None:
+                raise ValueError(f"Agent with index {i} does not exist.")
+
+            for j in range(len(self.agents)):
+                agent_to = self.getAgentByIndex(j)
+                if agent_to is None:
+                    raise ValueError(f"Agent with index {j} does not exist.")
+
+                offset = len(self.agents) * 3 * i
+
+                if i == j:
+                    W[offset + 3 * j:offset + 3 * (j + 1), offset + 3 * j:offset + 3 * (j + 1)] = np.eye(
+                        3) * value_measurement_not_exists
+                    continue
+
+                measurement_found = False
+                measurement: VisionAgentMeasurement = None
+                for m in agent_from.measurements:
+                    if m.target_index == j:
+                        measurement_found = True
+                        measurement = m
+                        break
+
+                if measurement_found:
+                    W[offset + 3 * j:offset + 3 * (j + 1), offset + 3 * j:offset + 3 * (j + 1)] = np.eye(
+                        3) * value_measurement_exists
+                else:
+                    W[offset + 3 * j:offset + 3 * (j + 1), offset + 3 * j:offset + 3 * (j + 1)] = np.eye(
+                        3) * value_measurement_not_exists
+
+        return W
 
     # ------------------------------------------------------------------------------------------------------------------
     def getAgentByIndex(self, index: int) -> (VisionAgent, None):
