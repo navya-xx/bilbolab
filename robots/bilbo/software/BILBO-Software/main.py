@@ -3,8 +3,6 @@ import ctypes
 import math
 import time
 
-from matplotlib import pyplot as plt
-
 from robot.bilbo import BILBO
 from robot.communication.serial.bilbo_serial_messages import BILBO_Debug_Message, BILBO_Sequencer_Event_Message
 from robot.control.definitions import BILBO_Control_Mode

@@ -256,22 +256,22 @@ class CLI_GUI_App(App):
         yield Header()
         with Vertical():
             with TabbedContent():
-                with TabPane("Overview", id="overview-tab"):
-                    with Vertical():
-                        yield OverviewWidget(id="overview-widget")
+                # with TabPane("Overview", id="overview-tab"):
+                #     with Vertical():
+                #         yield OverviewWidget(id="overview-widget")
                 with TabPane("Log", id="log-tab"):
                     with Vertical():
                         yield LogTabWidget(id="log-widget")
-                with TabPane("Robots", id="robots-tab"):
-                    yield Static("Robots", expand=True)
-                with TabPane("Devices", id="devices-tab"):
-                    yield Static("Devices", expand=True)
-                with TabPane("Optitrack", id="optitrack-tab"):
-                    yield Static("Optitrack", expand=True)
-                with TabPane("Experiments", id="experiments-tab"):
-                    yield Static("Experiments", expand=True)
-                with TabPane("Help", id="help-tab"):
-                    yield Static("Help", expand=True)
+                # with TabPane("Robots", id="robots-tab"):
+                #     yield Static("Robots", expand=True)
+                # with TabPane("Devices", id="devices-tab"):
+                #     yield Static("Devices", expand=True)
+                # with TabPane("Optitrack", id="optitrack-tab"):
+                #     yield Static("Optitrack", expand=True)
+                # with TabPane("Experiments", id="experiments-tab"):
+                #     yield Static("Experiments", expand=True)
+                # with TabPane("Help", id="help-tab"):
+                #     yield Static("Help", expand=True)
 
     def on_mount(self):
         self.title = "Robot App"
@@ -281,12 +281,12 @@ class CLI_GUI_App(App):
         global log_function
         log_function = self.addLog
 
-        self.notify("Info", timeout=5)
-        self.notify("Warning", timeout=7, severity='warning')
-        self.notify("Error", timeout=9, severity='error')
+        # self.notify("Info", timeout=5)
+        # self.notify("Warning", timeout=7, severity='warning')
+        # self.notify("Error", timeout=9, severity='error')
 
-        overview_widget = self.query_one('#overview-widget', OverviewWidget)
-        self.logs.append(overview_widget.log)
+        # overview_widget = self.query_one('#overview-widget', OverviewWidget)
+        # self.logs.append(overview_widget.log)
 
         log_widget = self.query_one("#log-widget", LogTabWidget)
         self.logs.append(log_widget.log)

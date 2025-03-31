@@ -3,8 +3,6 @@ import dataclasses
 import enum
 import time
 from typing import Any, cast
-
-from matplotlib import pyplot as plt
 from numpy.core.defchararray import isnumeric
 
 # ======================================================================================================================

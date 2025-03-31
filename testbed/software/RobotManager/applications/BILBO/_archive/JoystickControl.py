@@ -79,7 +79,6 @@ class SimpleTwiprJoystickControl:
         speak(f'Starting Bilbo joystick control') # on {self.robot_manager.deviceManager.address.replace(".", " dot ")}')
         self.robot_manager.start()
         self.joystick_control.start()
-        self.cli.start(commandSet=self.command_set)
         self.gui.start()
 
     # ------------------------------------------------------------------------------------------------------------------
