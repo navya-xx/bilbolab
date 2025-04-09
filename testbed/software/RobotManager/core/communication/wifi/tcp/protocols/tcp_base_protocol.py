@@ -1,8 +1,8 @@
 from typing import Union
 
 from core.communication.protocol import Protocol, Message
-from utils.logging_utils import Logger
-from utils.network.network import ipv4_to_bytes, bytes_to_ipv4
+from core.utils.logging_utils import Logger
+from core.utils.network.network import ipv4_to_bytes, bytes_to_ipv4
 
 logger = Logger('tcp protocol')
 

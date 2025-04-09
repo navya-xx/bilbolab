@@ -9,8 +9,8 @@ from RPi import GPIO
 
 from _archive.TWIPR_old.communication.twipr_comm_stm import TWIPR_Communication_STM32
 from _archive.TWIPR_old.communication.twipr_comm_utils import reset_uart
-from utils.ctypes_utils import struct_to_dict
-import utils.teleplot as teleplot
+from core.utils.ctypes_utils import struct_to_dict
+from core import utils as teleplot
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%d,%H:%M:%S',
                     level='INFO')

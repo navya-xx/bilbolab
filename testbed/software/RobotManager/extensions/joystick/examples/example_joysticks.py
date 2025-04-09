@@ -10,7 +10,7 @@ logging.basicConfig(
 
 
 def callback_new_joystick(joystick, *args, **kwargs):
-    joystick.setButtonCallback(button=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], event='down', function=callback_button,
+    joystick.setButtonCallback(button=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], event='down', function=callback_button,
                                parameters={'eventtype': 'down'})
 
     # joystick.setJoyHatCallback(['up', 'down', 'left', 'right'], joyhat_callback)
@@ -36,7 +36,7 @@ def main():
         for uuid, joystick in jm.joysticks.items():
             # print(f"Joystick {joystick.id}, Axis 0: {joystick.axis[0]}")
             axes_formatted = " ".join(f"Axis {i}: {axis: 5.2f}" for i, axis in enumerate(joystick.axis))
-            print(f"Joystick {joystick.id}, {axes_formatted}")
+            # print(f"Joystick {joystick.id}, {axes_formatted}")
 
         time.sleep(0.1)
 

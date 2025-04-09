@@ -4,10 +4,10 @@ import time
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Message
 from core.communication.wifi.tcp.tcp_server import TCP_Server
 from core.device import Device
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent
-from utils.logging_utils import Logger
-from utils.network.network import getValidHostIP
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.logging_utils import Logger
+from core.utils.network.network import getValidHostIP
 
 # === GLOBAL VARIABLES =================================================================================================
 logger = Logger('DEVICES')
@@ -15,7 +15,7 @@ logger.setLevel('INFO')
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class DeviceManagerCallbacks:
     new_device: CallbackContainer
     device_disconnected: CallbackContainer
@@ -23,7 +23,7 @@ class DeviceManagerCallbacks:
     event: CallbackContainer
 
 
-@event_handler
+@event_definition
 class DeviceManagerEvents:
     new_device: ConditionEvent
     device_disconnected: ConditionEvent

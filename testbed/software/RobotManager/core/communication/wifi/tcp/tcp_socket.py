@@ -6,8 +6,8 @@ import dataclasses
 
 import cobs.cobs as cobs
 
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 
 # Initialize logger for TCP communications.
 logger = Logger('tcp')
@@ -29,7 +29,7 @@ class FaultyPackage:
     timestamp: float
 
 
-@callback_handler
+@callback_definition
 class TCPSocketCallbacks:
     """
     Callbacks for events related to a TCP_Socket instance.
@@ -269,7 +269,7 @@ class TCP_Socket:
                 callback(self)
 
 
-@callback_handler
+@callback_definition
 class TCPSocketsHandlerCallbacks:
     """
     Callbacks for events related to the TCP_SocketsHandler.

@@ -1,8 +1,7 @@
 import time
 
-from utils.callbacks import Callback
-from utils.thread_worker import ThreadWorker, WorkerPool
-from utils.events import EventListener
+from core.utils.callbacks import Callback
+from core.utils.thread_worker import ThreadWorker, WorkerPool
 
 
 def testfunction1(input: int, *args, **kwargs):

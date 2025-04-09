@@ -1,19 +1,17 @@
-import dataclasses
-import logging
 import queue
 import socket
 import threading
 import time
 from cobs import cobs
 
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 
 logger = Logger('UDP Socket')
 logger.setLevel('INFO')
 
 
-@callback_handler
+@callback_definition
 class UDPSocketCallbacks:
     rx: CallbackContainer
 

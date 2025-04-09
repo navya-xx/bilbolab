@@ -124,7 +124,10 @@ class Display:
 
     def display_image(self, image):
         """Render the given image to the display."""
-        self.device.display(image)
+        try:
+            self.device.display(image)
+        except Exception as e:
+            ...
 
     def start(self):
         """Start the display thread."""

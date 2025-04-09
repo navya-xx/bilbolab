@@ -1,6 +1,6 @@
 import ctypes
 
-from utils.ctypes_utils import STRUCTURE
+from core.utils.ctypes_utils import STRUCTURE
 import robot.communication.bilbo_communication as twipr_communication
 from robot.lowlevel.stm32_addresses import TWIPR_GeneralAddresses
 

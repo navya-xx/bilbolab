@@ -1,23 +1,17 @@
-import copy
-import dataclasses
-import threading
-import ctypes  # Needed for ctypes types in serial communication
-import time
-
+from robot.communication.serial.bilbo_serial_messages import BILBO_Control_Event_Message
 # Importing low-level sample class from STM32 interface
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample
 
 # === OWN PACKAGES =====================================================================================================
-from utils.callbacks import Callback, callback_handler, CallbackContainer
-from robot.communication.bilbo_communication import BILBO_Communication, BILBO_Communication_Callbacks
-import robot.setup as settings
+from core.utils.callbacks import callback_handler, CallbackContainer
+from robot.communication.bilbo_communication import BILBO_Communication
 import robot.lowlevel.stm32_addresses as addresses
 from robot.lowlevel.stm32_control import *
-from utils.logging_utils import Logger
+from core.utils.events import ConditionEvent, event_handler
+from core.utils.logging_utils import Logger
 from robot.control.definitions import *
-from utils.data import limit, are_lists_approximately_equal
-from utils.time import IntervalTimer
-from utils.delayed_executor import delayed_execution
+from core.utils.data import limit, are_lists_approximately_equal
+from core.utils.delayed_executor import delayed_execution
 import robot.control.config as control_config
 
 # === Logger ===========================================================================================================
@@ -39,8 +33,17 @@ class BILBO_Control_Callbacks:
     """
     mode_change: CallbackContainer  # Inputs: mode: BILBO_Control_Mode, forced_change: bool
     status_change: CallbackContainer  # Inputs: status: BILBO_Control_State, forced_change: bool
+    configuration_change: CallbackContainer
     error: CallbackContainer
     on_update: CallbackContainer
+
+
+@event_handler
+class BILBO_Control_Events:
+    mode_change: ConditionEvent = ConditionEvent(flags=[('mode', BILBO_Control_Mode)])
+    configuration_change: ConditionEvent
+    error: ConditionEvent
+    status_change:  ConditionEvent = ConditionEvent(flags=[('status', str)])
 
 
 # === BILBO Control ====================================================================================================
@@ -109,6 +112,8 @@ class BILBO_Control:
         # Initialize callbacks container for high-level events
         self.callbacks = BILBO_Control_Callbacks()
 
+        self.events = BILBO_Control_Events()
+
         # Register commands to the WI-FI module for remote control
         self._comm.wifi.addCommand(identifier='setControlMode',
                                    callback=self.setMode,
@@ -134,6 +139,16 @@ class BILBO_Control:
                                    callback=self.setVelocityControlPID_Turn,
                                    arguments=['P', 'I', 'D'],
                                    description='Sets the PID Control Values for the Turn Velocity')
+
+
+        self._comm.wifi.addCommand(identifier='enableTIC',
+                                   callback=self.enableTIC,
+                                   arguments=['enable'],
+                                   description='Enabled Theta Integral Control')
+
+
+        self._comm.serial.callbacks.event.register(self._ll_control_event_callback,
+                                                           parameters={'messages': [BILBO_Control_Event_Message]})
 
         # Optionally, a dedicated thread could be started for continuous control updates
         # self._thread = threading.Thread(target=self._threadFunction)
@@ -506,6 +521,29 @@ class BILBO_Control:
         return success
 
     # ------------------------------------------------------------------------------------------------------------------
+    def enableTIC(self, enable: bool) -> bool:
+
+        if self.mode == BILBO_Control_Mode.OFF:
+            logger.warning("Cannot enable TIC in OFF mode")
+            return False
+
+        success = self._comm.serial.executeFunction(
+            module=addresses.TWIPR_AddressTables.REGISTER_TABLE_GENERAL,
+            address=addresses.TWIPR_ControlAddresses.ENABLE_TIC,
+            data=enable,
+            input_type=ctypes.c_bool,
+            output_type=ctypes.c_bool,
+        )
+
+        if success:
+            logger.info(f"Set TIC to {enable}")
+            self.config.statefeedback.tic.enabled = enable
+        else:
+            logger.warning("Failed to set TIC")
+
+        return success
+
+    # ------------------------------------------------------------------------------------------------------------------
     def getSample(self) -> TWIPR_Control_Sample:
         """
         Retrieve the current control sample.
@@ -540,6 +578,45 @@ class BILBO_Control:
         self._lowlevel_control_sample = sample
 
     # ------------------------------------------------------------------------------------------------------------------
+    def _ll_mode_change_callback(self, mode_ll: BILBO_Control_Mode_LL, *args, **kwargs) -> None:
+        mode = None
+        if mode_ll == BILBO_Control_Mode_LL.OFF:
+            mode = BILBO_Control_Mode.OFF
+        elif mode_ll == BILBO_Control_Mode_LL.DIRECT:
+            mode = BILBO_Control_Mode.DIRECT
+        elif mode_ll == BILBO_Control_Mode_LL.BALANCING:
+            mode = BILBO_Control_Mode.BALANCING
+        elif mode_ll == BILBO_Control_Mode_LL.VELOCITY:
+            mode = BILBO_Control_Mode.VELOCITY
+
+        self.mode = mode
+
+        self.callbacks.mode_change.call(mode, forced_change=False)
+        self.events.mode_change.set(resource=mode, flags={'mode': mode})
+
+        # Send Event to Host
+
+        self._comm.wifi.sendEvent(event='control',
+                                  data={
+                                      'event': 'mode_change',
+                                      'mode': mode,
+                                  })
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def _ll_configuration_change_callback(self, configuration: dict):
+        logger.debug(f"Received configuration change: {configuration}")
+
+        self.callbacks.configuration_change.call(configuration)
+        self.events.configuration_change.set(resource=configuration)
+
+        self._comm.wifi.sendEvent(event='control',
+                                  data={
+                                      'event': 'configuration_change',
+                                      'configuration': configuration,
+                                  })
+
+
+    # ------------------------------------------------------------------------------------------------------------------
     def _setControlConfig(self, config: control_config.ControlConfig, verify: bool = False):
 
         control_config = bilbo_control_configuration_ll_t(
@@ -553,7 +630,11 @@ class BILBO_Control:
             vic_enabled=config.statefeedback.vic.enabled,
             vic_ki=config.statefeedback.vic.Ki,
             vic_max_error=config.statefeedback.vic.max_error,
-            vic_v_limit=config.statefeedback.vic.velocity_threshold
+            vic_v_limit=config.statefeedback.vic.velocity_threshold,
+            tic_enabled = config.statefeedback.tic.enabled,
+            tic_ki = config.statefeedback.tic.Ki,
+            tic_max_error = config.statefeedback.tic.max_error,
+            tic_theta_limit = config.statefeedback.tic.theta_threshold
         )
 
         success = self._comm.serial.executeFunction(
@@ -842,8 +923,6 @@ class BILBO_Control:
 
         # Update low-level mode from sample
         mode_ll = BILBO_Control_Mode_LL(sample.control.mode)
-        if mode_ll is not self.mode_ll:
-            logger.info(f"LL control mode changed to {mode_ll.name}")
         self.mode_ll = mode_ll
 
         # Map low-level mode to high-level mode
@@ -856,12 +935,6 @@ class BILBO_Control:
             mode = BILBO_Control_Mode.BALANCING
         elif mode_ll == BILBO_Control_Mode_LL.VELOCITY:
             mode = BILBO_Control_Mode.VELOCITY
-
-        # Note: If the Python side uses different mode names than the low-level, a mapping should be applied here.
-        if mode != self.mode:
-            self._resetExternalInput()
-            self.callbacks.mode_change.call(mode, forced_change=True)
-            logger.info(f"Control mode changed to {mode.name}")
 
         self.mode = mode
 
@@ -910,3 +983,14 @@ class BILBO_Control:
             self._setBalancingInput_LL(input.balancing.u_left, input.balancing.u_right)
         elif self.mode == BILBO_Control_Mode.VELOCITY:
             self._setSpeedInput_LL(input.velocity.forward, input.velocity.turn)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    def _ll_control_event_callback(self, message: BILBO_Control_Event_Message, *args, **kwargs):
+        event =  BILBO_Control_Event_Type(message.data['event'])
+
+        if event == BILBO_Control_Event_Type.ERROR:
+            logger.error(f"Error in the LL Control Module: {message.data['error']}")
+        elif event == BILBO_Control_Event_Type.MODE_CHANGED:
+            self._ll_mode_change_callback(BILBO_Control_Mode_LL(message.data['mode']))
+        elif event == BILBO_Control_Event_Type.CONFIGURATION_CHANGED:
+            self._ll_configuration_change_callback(message.data['config'])

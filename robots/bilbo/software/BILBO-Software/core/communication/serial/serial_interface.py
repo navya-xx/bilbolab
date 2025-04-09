@@ -1,17 +1,16 @@
 import ctypes
-import dataclasses
 import enum
 import threading
 
 # === OWN PACKAGES =====================================================================================================
 from core.communication.serial.core.serial_protocol import UART_Message
 from core.communication.serial.core.serial_connection import SerialConnection
-import utils
-from utils.ctypes_utils import is_valid_ctype, ctype_to_value, value_to_ctype, bytes_to_ctype, ctype_to_bytes, \
+from core.utils.ctypes_utils import is_valid_ctype, ctype_to_value, value_to_ctype, bytes_to_ctype, ctype_to_bytes, \
     bytes_to_value, value_to_bytes
-from utils.callbacks import callback_handler, CallbackContainer, Callback
-from utils.events import event_handler, ConditionEvent
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_handler, CallbackContainer, Callback
+from core.utils.events import event_handler, ConditionEvent
+from core.utils.logging_utils import Logger
+import core
 
 # === GLOBAL VARIABLES =================================================================================================
 
@@ -307,7 +306,7 @@ class Serial_Interface:
     def _send(self, cmd: int = 0, module: int = 0, address: (bytes, bytearray, list, int) = None, flag: int = 0,
               data=None):
         if isinstance(address, int):
-            address = list(utils.bytes_utils.intToByte(address, 2))
+            address = list(core.utils.bytes_utils.intToByte(address, 2))
         elif isinstance(address, bytes):
             address = list(address)
         elif isinstance(address, bytearray):

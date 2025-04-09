@@ -7,10 +7,10 @@ Python side and then sent (via their serialized message) to the BabylonJS
 web application for rendering.
 """
 from extensions.simulation.src.utils.orientations import twiprToRotMat
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 
-@callback_handler
+@callback_definition
 class BabylonObjectCallbacks:
     update: CallbackContainer
 

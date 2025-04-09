@@ -1,5 +1,5 @@
 import board
-from utils import bytes_utils as bt
+from core.utils import bytes_utils as bt
 
 
 class I2C_Interface:

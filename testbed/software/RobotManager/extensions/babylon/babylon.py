@@ -5,17 +5,15 @@ import os
 import threading
 import time
 import queue
-import sys
 
 import qmt
-from extensions.babylon.objects.objects import BabylonObject
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 
 babylon_path = os.path.join(os.path.dirname(__file__), "babylon_lib")
 
 
-@callback_handler
+@callback_definition
 class BabylonCallbacks:
     loaded: CallbackContainer
 

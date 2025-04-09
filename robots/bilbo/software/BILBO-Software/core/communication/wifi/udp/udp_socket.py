@@ -4,9 +4,9 @@ import threading
 import time
 from cobs import cobs
 
-from utils.network import getLocalIP_RPi
-from utils.logging_utils import Logger
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.network import getLocalIP_RPi
+from core.utils.logging_utils import Logger
+from core.utils.callbacks import callback_handler, CallbackContainer
 
 logger = Logger('udp')
 logger.setLevel('DEBUG')

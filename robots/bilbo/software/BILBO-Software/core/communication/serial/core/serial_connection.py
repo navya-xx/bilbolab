@@ -1,11 +1,10 @@
-import logging
 import queue
 import threading
 
 from core.communication.serial.core.uart import UART_Socket
-from core.communication.serial.core.serial_protocol import UART_Protocol, UART_Message
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.exit import ExitHandler
+from core.communication.serial.core.serial_protocol import UART_Protocol
+from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.exit import ExitHandler
 
 
 @callback_handler

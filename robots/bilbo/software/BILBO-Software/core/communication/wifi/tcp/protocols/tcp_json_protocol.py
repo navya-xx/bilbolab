@@ -1,10 +1,18 @@
 import dataclasses
 import logging
 import time as t
+
+import numpy
 import orjson
 
 from core.communication.protocol import Protocol, Message
 from .tcp_base_protocol import TCP_Base_Protocol
+
+
+def default_numpy_json(obj):
+    if isinstance(obj, numpy.generic):
+        return obj.item()  # Convert to native Python type
+    raise TypeError
 
 
 # ======================================================================================================================
@@ -74,7 +82,7 @@ class TCP_JSON_Protocol(Protocol):
             return
 
         # Check if it correctly set up for a command
-        data = orjson.dumps(msg)
+        data = orjson.dumps(msg, default=default_numpy_json)
 
         return data
 

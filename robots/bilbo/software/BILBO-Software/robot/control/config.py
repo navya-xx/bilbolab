@@ -1,13 +1,11 @@
 import dataclasses
 import json
+import math
 import os
 
 from paths import control_config_path
 from robot.hardware import get_hardware_definition
-from utils.dataclass_utils import analyze_dataclass, from_dict
-
-TWIPR_CONTROL_VELOCITY_FORWARD_MAX = 3
-TWIPR_CONTROL_VELOCITY_TURN_MAX = 5
+from core.utils.dataclass_utils import from_dict, analyze_dataclass
 
 
 @dataclasses.dataclass
@@ -30,11 +28,18 @@ class VIC_Config:
     max_error: float = 0.3
     velocity_threshold: float = 0.05
 
+@dataclasses.dataclass
+class TIC_Config:
+    enabled: bool = False
+    Ki: float = 0.1
+    max_error: float = 0.3
+    theta_threshold: float = math.radians(10)
 
 @dataclasses.dataclass
 class StateFeedback_Config:
     gain: list = dataclasses.field(default_factory=list)
     vic: VIC_Config = dataclasses.field(default_factory=VIC_Config)
+    tic: TIC_Config = dataclasses.field(default_factory=TIC_Config)
 
 
 @dataclasses.dataclass
@@ -92,7 +97,7 @@ class ControlConfig:
     velocity_control: VelocityControl_Config = dataclasses.field(default_factory=VelocityControl_Config)
 
 
-def generate_default_config():
+def generate_default_control_config():
     hardware = get_hardware_definition()
 
     if hardware['model']['type'] == 'normal':
@@ -128,6 +133,23 @@ def generate_default_config_normal():
     # This is really aggressive!
     config.statefeedback.gain = [0.3, 0.3, 0.04, 0.025,
                                  0.3, 0.3, 0.04, -0.025]
+
+    # This is even more aggressive
+    config.statefeedback.gain = [0.3, 0.35, 0.04, 0.025,
+                                 0.3, 0.35, 0.04, -0.025]
+
+    # This is even more aggressive
+    config.statefeedback.gain = [0.3, 0.42, 0.04, 0.025,
+                                 0.3, 0.42, 0.04, -0.025]
+
+
+    config.manual.torque.forward_torque_gain = 0.5
+    config.manual.torque.turn_torque_gain = 0.2
+
+    config.statefeedback.tic.enabled = False
+    config.statefeedback.tic.Ki = 0.2
+    config.statefeedback.tic.max_error = 0.3
+    config.statefeedback.tic.theta_threshold = math.radians(10)
 
     config.velocity_control.forward.feedback.Kp = -0.5
     config.velocity_control.forward.feedback.Ki = -0.6
@@ -179,6 +201,9 @@ def generate_default_config_small():
     config.statefeedback.gain = [0.12, 0.25, 0.030, 0.02,
                                  0.12, 0.25, 0.030, -0.02]
 
+    config.statefeedback.gain = [0.16, 0.3, 0.030, 0.02,
+                                 0.16, 0.3, 0.030, -0.02]
+
     config.manual.torque.forward_torque_gain = 0.2
     config.manual.torque.turn_torque_gain = 0.15
 
@@ -188,10 +213,10 @@ def generate_default_config_small():
     config.velocity_control.turn.feedback.Kp = 0
     config.velocity_control.turn.feedback.Ki = 0
     config.velocity_control.turn.feedback.Kd = 0
-    config.statefeedback.vic.enabled = False
-    config.statefeedback.vic.max_error = 0.5
-    config.statefeedback.vic.velocity_threshold = 0.1
-    config.statefeedback.vic.Ki = 0.2
+    config.statefeedback.vic.enabled = True
+    config.statefeedback.vic.max_error = 0.2
+    config.statefeedback.vic.velocity_threshold = 0.05
+    config.statefeedback.vic.Ki = 0.1
     save_config(config)
 
 
@@ -242,15 +267,14 @@ def save_config(config: ControlConfig):
 
     Args:
         config (ControlConfig): The configuration dataclass to save.
-        path (str): The path where the JSON file will be saved.
     """
 
-    file = f"{control_config_path}/{config.name}.json"
+    file_name = f"{control_config_path}/{config.name}.json"
 
     try:
-        with open(file, 'w') as file:
-            json.dump(dataclasses.asdict(config), file, indent=4)
-        print(f"Configuration successfully saved to {file}")
+        with open(file_name, 'w') as file:
+            json.dump(dataclasses.asdict(config), file, indent=4)  # type: ignore
+        print(f"Control configuration successfully saved to {file_name}")
     except Exception as e:
         print(f"An error occurred while saving the configuration: {e}")
 
@@ -276,6 +300,7 @@ def get_all_configs() -> dict[str, ControlConfig]:
         raise
 
 
+
 if __name__ == '__main__':
-    generate_default_config()
+    generate_default_control_config()
     # analyze_dataclass(ControlConfig, generate_figure=True)

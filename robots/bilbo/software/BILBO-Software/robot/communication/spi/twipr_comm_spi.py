@@ -1,18 +1,17 @@
 import threading
-import time
 from ctypes import sizeof
 
 # === OWN PACKAGES =====================================================================================================
 from core.communication.spi.spi import SPI_Interface
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.dataclass_utils import from_dict
+from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.dataclass_utils import from_dict
 # from utils.exit import ExitHandler
 from robot.lowlevel.stm32_sample import bilbo_ll_sample_struct, BILBO_LL_Sample
-from utils.ctypes_utils import bytes_to_value
+from core.utils.ctypes_utils import bytes_to_value
 from robot.lowlevel.stm32_sample import SAMPLE_BUFFER_LL_SIZE
-from control_board.hardware.hardware import GPIO_Input, InterruptFlank, PullupPulldown
-from utils.time import performance_analyzer, precise_sleep
-from utils.bytes_utils import intToByteList, intToByte
+from hardware.hardware.gpio import GPIO_Input, InterruptFlank, PullupPulldown
+from core.utils.time import precise_sleep
+from core.utils.bytes_utils import intToByteList
 
 
 # ======================================================================================================================

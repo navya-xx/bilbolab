@@ -6,7 +6,7 @@ import robot.lowlevel.stm32_addresses as addresses
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.hardware import get_hardware_definition
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 
 @dataclasses.dataclass

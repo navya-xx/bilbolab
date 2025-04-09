@@ -3,7 +3,7 @@ import threading
 
 import time
 
-from utils.callbacks import Callback
+from core.utils.callbacks import Callback
 
 # https://www.pygame.org/docs/ref/joystick.html#pygame.joystick.Joystick.rumble
 from os import environ

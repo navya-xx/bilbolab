@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from utils.json_utils import readJSON
+from core.utils.json_utils import readJSON
 from _archive.TWIPR_old.utils import getSignal
 
 Ts = 0.01

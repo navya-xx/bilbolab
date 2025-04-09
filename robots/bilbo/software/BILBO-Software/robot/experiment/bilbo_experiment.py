@@ -14,15 +14,11 @@ from robot.lowlevel.stm32_general import MAX_STEPS_TRAJECTORY, LOOP_TIME_CONTROL
 from robot.lowlevel.stm32_sequencer import bilbo_sequence_input_t, bilbo_sequence_description_t, BILBO_Sequence_LL
 import robot.lowlevel.stm32_addresses as addresses
 from robot.utilities.bilbo_utilities import BILBO_Utilities
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent
-from utils.logging_utils import Logger, setLoggerLevel
-from utils.ctypes_utils import struct_to_dataclass
-from utils.dataclass_utils import from_dict
-from paths import experiments_path
-from robot.lowlevel.stm32_messages import BILBO_LL_MESSAGE_SEQUENCER_EVENT
-from utils.sound.sound import speak
-from utils.data import generate_random_input, generate_time_vector
+from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.events import event_handler, ConditionEvent
+from core.utils.logging_utils import Logger
+from core.utils.dataclass_utils import from_dict
+from core.utils.data import generate_random_input, generate_time_vector
 from core.communication.wifi.data_link import CommandArgument
 
 
@@ -184,7 +180,7 @@ class BILBO_ExperimentHandler:
             return False
 
         logger.info(f"Trajectory {trajectory.id} loaded!")
-        self.utils.speak(f"Trajectory {trajectory.id} loaded")
+        # self.utils.speak(f"Trajectory {trajectory.id} loaded")
         return True
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -461,8 +457,8 @@ class BILBO_ExperimentHandler:
                 input_left = float(input[0])
                 input_right = float(input[1])
             else:
-                input_left = float(input)
-                input_right = float(input)
+                input_left = float(input)/2
+                input_right = float(input)/2
 
             trajectory_inputs[i] = BILBO_TrajectoryInput(
                 step=i,
@@ -497,7 +493,7 @@ class BILBO_ExperimentHandler:
         trajectory_id = message.data['sequence_id']
         tick = message.data['tick']
         if event == 'STARTED':
-            self.utils.speak(f"Trajectory {trajectory_id} started")
+            # self.utils.speak(f"Trajectory {trajectory_id} started")
             logger.info(f"Trajectory {trajectory_id} started (Tick: {tick})")
             self.callbacks.trajectory_started.call(trajectory_id=trajectory_id, tick=tick)
 
@@ -505,7 +501,7 @@ class BILBO_ExperimentHandler:
                                                flags={'trajectory_id': trajectory_id})
 
         elif event == 'FINISHED':
-            self.utils.speak(f"Trajectory {trajectory_id} finished")
+            # self.utils.speak(f"Trajectory {trajectory_id} finished")
             logger.info(f"Trajectory {trajectory_id} finished (Tick: {tick})")
 
             self.callbacks.trajectory_finished.call(trajectory_id=trajectory_id, tick=tick)
@@ -522,7 +518,7 @@ class BILBO_ExperimentHandler:
                                               flags={'trajectory_id': trajectory_id})
 
         elif event == 'ABORTED':
-            self.utils.speak(f"Trajectory {trajectory_id} aborted")
+            # self.utils.speak(f"Trajectory {trajectory_id} aborted")
             logger.info(f"Trajectory {trajectory_id} aborted")
 
             self.callbacks.trajectory_aborted.call(trajectory_id=trajectory_id, tick=tick)

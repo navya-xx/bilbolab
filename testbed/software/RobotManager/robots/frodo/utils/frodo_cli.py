@@ -2,7 +2,7 @@
 from extensions.cli.src.cli import Command, CommandSet, CommandArgument
 from robots.frodo.frodo import Frodo
 from robots.frodo.utils.frodo_utils import test_response_time
-from utils.callbacks import Callback
+from core.utils.callbacks import Callback
 
 
 # ======================================================================================================================

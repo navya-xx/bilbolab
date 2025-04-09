@@ -2,7 +2,7 @@ import enum
 import time
 
 import board
-from utils import bytes_utils as bt
+from core.utils import bytes_utils as bt
 
 RegInputDisable_B = 0x00
 RegInputDisable_A = 0x01

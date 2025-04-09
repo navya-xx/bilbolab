@@ -5,7 +5,7 @@ import time
 from applications.BILBO._archive.IdeenExpo24.src import ideenexpo_settings
 from applications.BILBO._archive.IdeenExpo24.src.ideenexpo_gui import IdeenExpoGUI
 from robots.bilbo.twipr_manager import BILBO_Manager
-from utils.misc import clipValue
+from core.utils.misc import clipValue
 from extensions.joystick.joystick_manager import Joystick, JoystickManager
 
 logger = logging.getLogger('IdeenExpo')

@@ -4,7 +4,7 @@ import numpy as np
 import scipy.interpolate as sci
 import matplotlib.pyplot as plt
 
-from utils.files import relativeToFullPath
+from core.utils.files import relativeToFullPath
 
 ERROR_FACTOR = 2
 ERROR_FILE_PATH = relativeToFullPath("./error_data/v3_tagged_error_data.json")

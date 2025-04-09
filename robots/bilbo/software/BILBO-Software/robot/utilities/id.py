@@ -1,6 +1,6 @@
 from paths import settings_file_path
-from utils.files import fileExists
-from utils.json_utils import readJSON
+from core.utils.files import fileExists
+from core.utils.json_utils import readJSON
 
 
 def readID() -> str:

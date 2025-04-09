@@ -7,14 +7,14 @@ import threading
 import time
 import webbrowser
 
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.websockets.websockets import SyncWebsocketServer as WebsocketClass
-from utils.exit import ExitHandler
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.websockets.websockets import SyncWebsocketServer as WebsocketClass
+from core.utils.exit import ExitHandler
 
 frontend_dir = f"{os.path.dirname(__file__)}/frontend/"
 
 
-@callback_handler
+@callback_definition
 class NodeJSGui_Callbacks:
     websocket_client_connected: CallbackContainer
     rx_message: CallbackContainer

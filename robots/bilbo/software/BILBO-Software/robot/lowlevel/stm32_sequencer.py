@@ -1,7 +1,7 @@
 import ctypes
 import dataclasses
 
-from utils.ctypes_utils import STRUCTURE
+from core.utils.ctypes_utils import STRUCTURE
 
 
 @STRUCTURE

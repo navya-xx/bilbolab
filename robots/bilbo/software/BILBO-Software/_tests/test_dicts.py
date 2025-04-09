@@ -1,4 +1,4 @@
-from utils.time import PerformanceTimer
+from core.utils import PerformanceTimer
 
 
 def copy_from_b_to_a(a, b, structure_cache=None):

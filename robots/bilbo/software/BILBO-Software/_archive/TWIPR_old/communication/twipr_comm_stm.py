@@ -4,7 +4,7 @@ import threading
 import ctypes
 
 import robot.setup as parameters
-import utils
+from core import utils
 from core.communication.serial.core.serial_connection import SerialConnection
 
 from core.communication.serial.core.serial_protocol import UART_Message

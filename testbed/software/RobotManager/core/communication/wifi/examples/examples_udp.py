@@ -5,7 +5,7 @@ from core.communication.wifi.udp.protocols.udp_json_protocol import UDP_JSON_Mes
 from core.communication.wifi.udp.udp import UDP, UDP_Broadcast
 from core.utils.network import getLocalIP
 
-from utils.time import sleep
+from core.utils.time import sleep
 
 
 def example_1():

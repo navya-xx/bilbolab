@@ -5,15 +5,14 @@ import time
 
 import numpy as np
 import qmt
-from paramiko import agent
 
 import extensions.simulation.src.core as core
 from applications.FRODO.simulation.frodo_simulation_utils import frodo_virtual_agent_colors, is_in_fov
-from applications.FRODO.utilities.web_gui.FRODO_Web_Interface import FRODO_Web_Interface, Group, VisionAgent
+from applications.FRODO.utilities.web_gui.FRODO_Web_Interface import FRODO_Web_Interface, Group
 from extensions.simulation.src.core.environment import BASE_ENVIRONMENT_ACTIONS
 from extensions.simulation.src.objects.base_environment import BaseEnvironment
 from extensions.simulation.src.objects.frodo import FRODO_DynamicAgent
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 
 # ======================================================================================================================

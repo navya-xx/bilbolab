@@ -1,12 +1,10 @@
-import time
-
 from core.device import Device
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class Frodo_Callbacks:
     stream: CallbackContainer
 

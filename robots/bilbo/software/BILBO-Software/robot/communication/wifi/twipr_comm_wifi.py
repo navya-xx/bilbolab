@@ -3,7 +3,7 @@ import time
 from core.communication.wifi.data_link import CommandArgument
 # === OWN PACKAGES =====================================================================================================
 from core.communication.wifi.wifi_interface import WIFI_Interface
-from utils.callbacks import Callback, callback_handler, CallbackContainer
+from core.utils.callbacks import Callback, callback_handler, CallbackContainer
 
 
 # ======================================================================================================================

@@ -140,12 +140,17 @@ core_utils_RegisterEntry<bool, twipr_control_configuration_t> reg_set_control_co
 
 core_utils_RegisterEntry<bool, bool> reg_enable_vel_int_cont(&register_map,
 		REG_ADRESS_F_ENABLE_VELOCITY_INTEGRAL_CONTROL, &twipr_firmware.control,
-		&TWIPR_ControlManager::enableSpeedIntegralControl);
+		&TWIPR_ControlManager::enableVIC);
 
 
 core_utils_RegisterEntry<bool, float> reg_set_theta_offset(&register_map,
 		REG_ADDRESS_F_ESTIMATION_SET_THETA_OFFSET, &twipr_firmware.estimation,
 		&TWIPR_Estimation::setThetaOffset);
+
+
+core_utils_RegisterEntry<bool, bool> reg_enable_tic(&register_map,
+		REG_ADRESS_F_ENABLE_TIC, &twipr_firmware.control,
+		&TWIPR_ControlManager::enableTIC);
 
 
 

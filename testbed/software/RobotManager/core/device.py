@@ -5,10 +5,10 @@ import time
 from core.communication.protocol import Message
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Message
 from core.communication.wifi.tcp.tcp_connection import TCP_Connection
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent
-from utils.logging_utils import Logger
-from utils.time import TimeoutTimer
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.logging_utils import Logger
+from core.utils.time import TimeoutTimer
 
 # === GLOBAL VARIABLES =================================================================================================
 logger = Logger('device')
@@ -16,7 +16,7 @@ logger.setLevel('INFO')
 
 
 # === CALLBACKS ========================================================================================================
-@callback_handler
+@callback_definition
 class DeviceCallbacks:
     registered: CallbackContainer
     disconnected: CallbackContainer
@@ -27,11 +27,11 @@ class DeviceCallbacks:
 
 
 # === EVENTS ===========================================================================================================
-@event_handler
+@event_definition
 class DeviceEvents:
     rx: ConditionEvent
     stream: ConditionEvent
-    event: ConditionEvent = ConditionEvent(flags=[('type', str)])
+    event: ConditionEvent = ConditionEvent(flags=[('event', str)])
     timeout: ConditionEvent
 
 
@@ -301,12 +301,10 @@ class Device:
         elif message.event == 'heartbeat':
             self.heartbeat_timer.reset()
 
-
-        # print(f"EVENT: {message.event}")
         for callback in self.callbacks.event:
             callback(message, self)
 
-        self.events.event.set(resource=message, flags={'type': message.event})
+        self.events.event.set(resource=message, flags={'event': message.event})
 
     # ------------------------------------------------------------------------------------------------------------------
     def _handleStreamMessage(self, message: TCP_JSON_Message):

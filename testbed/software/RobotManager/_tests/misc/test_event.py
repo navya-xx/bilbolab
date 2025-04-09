@@ -1,7 +1,7 @@
 import threading
 import time
 
-from utils.events import ConditionEvent
+from core.utils.events import ConditionEvent
 
 
 class Sender:

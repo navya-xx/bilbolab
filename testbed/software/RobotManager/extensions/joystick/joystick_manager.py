@@ -1,32 +1,27 @@
 import math
 import multiprocessing
 import queue
-import signal
 import threading
 import time
-
-from extensions.joystick.Mappings.joystick_mappings import joystick_mappings
-from utils.callbacks import callback_handler, CallbackContainer, Callback
 from os import environ
-
-from utils.events import event_handler, ConditionEvent
-from utils.exit import ExitHandler
 
 environ['SDL_JOYSTICK_HIDAPI_PS4_RUMBLE'] = '1'
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
-
 import pygame
 
-from utils.logging_utils import Logger
+# === CUSTOM PACKAGES ==================================================================================================
+from extensions.joystick.Mappings.joystick_mappings import joystick_mappings
+from core.utils.callbacks import callback_definition, CallbackContainer, Callback, CallbackGroup
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.exit import ExitHandler
+from core.utils.logging_utils import Logger
 
+# ======================================================================================================================
 logger = Logger(name='Joysticks')
 
 
-def sign(x):
-    return x and (1, -1)[x < 0]
-
-
+# ======================================================================================================================
 class _JoystickManagerProcess:
     pygame_joysticks: list
     _thread: threading.Thread
@@ -46,18 +41,23 @@ class _JoystickManagerProcess:
         self.exit = ExitHandler(suppress_print=True)
         self.exit.register(self.close)
 
-    def init(self):
+    # ------------------------------------------------------------------------------------------------------------------
+    @staticmethod
+    def init():
         pygame.init()
         pygame.joystick.init()
 
+    # ------------------------------------------------------------------------------------------------------------------
     def start(self):
         self._thread.start()
         self.eventLoop()
 
+    # ------------------------------------------------------------------------------------------------------------------
     def close(self, *args, **kwargs):
         self._exit = True
         self._thread.join()
 
+    # ------------------------------------------------------------------------------------------------------------------
     def registerJoystick(self, joystick: pygame.joystick.Joystick):
         self.pygame_joysticks.append(joystick)
 
@@ -76,6 +76,7 @@ class _JoystickManagerProcess:
 
         return data
 
+    # ------------------------------------------------------------------------------------------------------------------
     def handleRxEvent(self, event):
         if event['event'] == 'rumble':
             if event['data']['device_id'] not in self.joysticks.keys():
@@ -84,6 +85,7 @@ class _JoystickManagerProcess:
             js.rumble(0.5, 0.5, 500)
             js.rumble(event['data']['strength'], event['data']['strength'], int(math.floor(event['data']['duration'])))
 
+    # ------------------------------------------------------------------------------------------------------------------
     def threadFunction(self):
         while not self._exit:
             # Set the axes
@@ -101,6 +103,7 @@ class _JoystickManagerProcess:
                 ...
             time.sleep(0.01)
 
+    # ------------------------------------------------------------------------------------------------------------------
     def eventLoop(self):
         while not self._exit:
             for event in pygame.event.get():
@@ -155,13 +158,16 @@ class _JoystickManagerProcess:
             time.sleep(0.01)
 
 
+# ------------------------------------------------------------------------------------------------------------------
 def joystick_event_process(event_queue: multiprocessing.Queue, rx_queue: multiprocessing.Queue, joystick_dict):
     jm = _JoystickManagerProcess(event_queue, rx_queue, joystick_dict)
     jm.init()
     jm.start()
 
 
-@callback_handler
+# ======================================================================================================================
+# ======================================================================================================================
+@callback_definition
 class JoystickManager_Callbacks:
     new_joystick: CallbackContainer
     joystick_disconnected: CallbackContainer
@@ -175,12 +181,12 @@ class JoystickManager:
     _event_thread: threading.Thread
     _process: multiprocessing.Process
     _exit: bool
-
     _mp_manager: multiprocessing.Manager
     _event_rx_queue: multiprocessing.Queue
     _tx_queue: multiprocessing.Queue
     _joystick_dict: dict
 
+    # === INIT =========================================================================================================
     def __init__(self):
 
         self.joysticks = {}
@@ -311,20 +317,21 @@ class JoystickManager:
     def _handleJoyHatEvent(self, data):
         joystick = self.joysticks[data['device_id']]
 
-        # Get the joyhat direction
-        direction = None
-
-        match event.value:
-            case (0, 1):
-                direction = 'up'
-            case (1, 0):
-                direction = 'right'
-            case (-1, 0):
-                direction = 'left'
-            case (0, -1):
-                direction = 'down'
-
-        joystick._joyhatEvent(direction)
+        return
+        # # Get the joyhat direction
+        # direction = None
+        #
+        # match event.value:
+        #     case (0, 1):
+        #         direction = 'up'
+        #     case (1, 0):
+        #         direction = 'right'
+        #     case (-1, 0):
+        #         direction = 'left'
+        #     case (0, -1):
+        #         direction = 'down'
+        #
+        # joystick._joyhatEvent(direction)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _joystickThreadFunction(self):
@@ -361,12 +368,26 @@ class JoystickManager:
 
 
 # ======================================================================================================================
-
-@event_handler
+@event_definition
 class JoystickEvents:
     button: ConditionEvent = ConditionEvent(flags=[('button', (str, int))])
 
 
+@callback_definition
+class JoystickCallbacks(CallbackGroup):
+    A: CallbackContainer
+    B: CallbackContainer
+    X: CallbackContainer
+    Y: CallbackContainer
+    START: CallbackContainer
+    SELECT: CallbackContainer
+    L1: CallbackContainer
+    R1: CallbackContainer
+    L3: CallbackContainer
+    R3: CallbackContainer
+
+
+# ======================================================================================================================
 class Joystick:
     id: str
     instance_id: int
@@ -376,12 +397,13 @@ class Joystick:
     axis: list
 
     num_axes: int
-    mapping: dict
+    mapping: (dict, None)
     events: JoystickEvents
     button_callbacks: list['JoystickButtonCallback']
-    joyhat_callbacks: list['JoyHatCallback']
 
-    buttons: dict  # TODO: add a button dict that stores whether a button is pressed and for how long
+    # joyhat_callbacks: list['JoyHatCallback']
+
+    # buttons: dict  # TODO: add a button dict that stores whether a button is pressed and for how long
 
     # === INIT =========================================================================================================
     def __init__(self, manager: JoystickManager) -> None:
@@ -390,12 +412,14 @@ class Joystick:
         self.connected = False
         self.axis = []
         self.button_callbacks = []
-        self.joyhat_callbacks = []
+        # self.joyhat_callbacks = []
 
         self.events = JoystickEvents()
+        self.callbacks = JoystickCallbacks()
 
         self.manager = manager
         self.mapping = None
+
         self.instance_id = -1
         self.id = ''
         self.num_axes = 0
@@ -411,7 +435,11 @@ class Joystick:
         self.num_axes = data['num_axes']
 
         if self.name in joystick_mappings:
+            logger.debug(f"Joystick mapping found for {self.name}")
             self.mapping = joystick_mappings[self.name]
+        else:
+            logger.debug(f"No mapping found for {self.name}")
+            self.mapping = None
 
         self.axis = [0] * self.num_axes
         self.connected = True
@@ -430,6 +458,7 @@ class Joystick:
     # ------------------------------------------------------------------------------------------------------------------
     def clearAllButtonCallbacks(self):
         self.button_callbacks = []
+        self.callbacks.clearAllCallbacks()
 
     # ------------------------------------------------------------------------------------------------------------------
     def setJoyHatCallback(self, direction: str, function: callable, parameters: dict = None, lambdas: dict = None):
@@ -484,8 +513,12 @@ class Joystick:
                 for callback in callbacks_name:
                     callback(joystick=self, button=button_name, event='down')
 
+                # Get it from the normal callbacks
+                if hasattr(self.callbacks, button_name):
+                    callback_container: CallbackContainer = getattr(self.callbacks, button_name)
+                    callback_container.call()
+
         self.events.button.set(resource=button, flags={'button': [button, button_name]})
-        # self.events.button.set(resource=button, flags={'button': button_name})
 
     # ------------------------------------------------------------------------------------------------------------------
     def _buttonUp(self, button):
@@ -497,21 +530,15 @@ class Joystick:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _joyhatEvent(self, direction):
-        callbacks = [callback for callback in self.joyhat_callbacks if
-                     callback.direction == direction]
-
-        for callback in callbacks:
-            callback(joystick=self, direction=direction)
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # @property
-    # def axis(self):
-    #     if self.connected:
-    #         for i in range(0, self.num_axes):
-    #             self._axis[i] = self.joystick.get_axis(i)
-    #     return self._axis
+        return
+        # callbacks = [callback for callback in self.joyhat_callbacks if
+        #              callback.direction == direction]
+        #
+        # for callback in callbacks:
+        #     callback(joystick=self, direction=direction)
 
 
+# ======================================================================================================================
 class JoyHatCallback:
     callback: Callback
     direction: str
@@ -530,6 +557,7 @@ class JoyHatCallback:
         self.callback(*args, **kwargs)
 
 
+# ======================================================================================================================
 class JoystickButtonCallback:
     callback: Callback
     event: str
@@ -537,10 +565,8 @@ class JoystickButtonCallback:
     def __init__(self, button: (str, int), event, function: callable, parameters: dict = None, lambdas: dict = None):
         """
 
-        :param callback_type:
         :param button:
         :param function:
-        :param kwargs:
         """
         self.button = button
         self.event = event
@@ -556,6 +582,7 @@ class JoystickButtonCallback:
         self.callback(*args, **kwargs)
 
 
+# ======================================================================================================================
 def main():
     jm = JoystickManager()
     jm.init()
@@ -569,7 +596,7 @@ def main():
         if len(jm.joysticks) > 0:
             for id, joystick in jm.joysticks.items():
                 ...
-                print(f"{joystick.axis[1]}")
+                # print(f"{joystick.axis[1]}")
         time.sleep(0.1)
 
 
