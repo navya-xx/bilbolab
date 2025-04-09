@@ -17,7 +17,7 @@ from extensions.cli.src.cli import CLI, CommandSet
 from extensions.cli.src.cli_gui_app import CLI_GUI_App
 from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.exit import ExitHandler
-from core import utils as logging_utils
+import core.utils.logging_utils as logging_utils
 from core.utils.logging_utils import Logger
 from core.utils.time import delayed_execution
 

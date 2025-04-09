@@ -3,7 +3,7 @@ from robots.bilbo.robot.bilbo_control import BILBO_Control
 from robots.bilbo.robot.bilbo_core import BILBO_Core
 from robots.bilbo.robot.bilbo_experiment import BILBO_Experiments
 from robots.bilbo.robot.utils.bilbo_cli import BILBO_CommandSet
-from robots.bilbo.robot.utils.bilbo_utils import BILBO_Assets, BILBO_Interfaces
+from robots.bilbo.robot.utils.bilbo_utils import BILBO_Interfaces
 from robots.bilbo.robot.utils.twipr_data import TWIPR_Data, twiprSampleFromDict
 from robots.bilbo.robot.bilbo_definitions import *
 

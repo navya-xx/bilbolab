@@ -56,6 +56,9 @@ class BILBO_Interfaces:
 
     # ------------------------------------------------------------------------------------------------------------------
     def addJoystick(self, joystick: Joystick):
+
+        self.core.logger.info("Add Joystick")
+
         self.joystick = joystick
         self.joystick.events.button.on(self.core.events.resume.set, flags={'button': 'DPAD_RIGHT'})
         self.joystick.events.button.on(self.core.events.revert.set, flags={'button': 'DPAD_LEFT'})
@@ -80,6 +83,9 @@ class BILBO_Interfaces:
 
     # ------------------------------------------------------------------------------------------------------------------
     def removeJoystick(self):
+
+        self.core.logger.info("Remove Joystick")
+
         if self.joystick is not None:
             self.joystick.clearAllButtonCallbacks()
             self.joystick = None
