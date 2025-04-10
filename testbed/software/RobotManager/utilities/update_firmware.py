@@ -65,7 +65,7 @@ def transfer_file(hostname, username, password, local_path, remote_path="/home/a
     return result.returncode == 0, f"{remote_path}/{file_name}"
 
 def run_remote_command(hostname, username, password, remote_file_path):
-    cmd = f"python3 /home/admin/robot/software/firmware_update.py {remote_file_path}"
+    cmd = f"python3 /home/admin/robot/software/utilities/firmware_update.py {remote_file_path}"
     ssh_cmd = [
         "sshpass", "-p", password,
         "ssh", "-o", "StrictHostKeyChecking=no",

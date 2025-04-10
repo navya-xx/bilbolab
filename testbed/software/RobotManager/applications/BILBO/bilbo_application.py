@@ -1,5 +1,16 @@
 import logging
+import os
+import sys
 import time
+
+# Get the directory of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Go up one or more levels as needed
+top_level_module = os.path.abspath(os.path.join(current_dir, '..', '..'))  # adjust as needed
+
+if top_level_module not in sys.path:
+    sys.path.insert(0, top_level_module)
 
 from applications.BILBO.experiments.bilbo_experiments import BILBO_ExperimentHandler
 from applications.BILBO.tracker.bilbo_tracker import BILBO_Tracker
