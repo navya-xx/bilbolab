@@ -312,11 +312,8 @@ class JoystickButtonCallback:
 
     def __init__(self, button, event, function: callable, parameters: dict = None, lambdas: dict = None):
         """
-
-        :param callback_type:
         :param button:
         :param function:
-        :param kwargs:
         """
         self.button = button
         self.event = event
