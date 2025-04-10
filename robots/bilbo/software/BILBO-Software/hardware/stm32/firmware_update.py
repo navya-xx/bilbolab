@@ -28,7 +28,7 @@ class STM32_FirmwareUpdater:
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):
         if not self.board_config['pins']['stm32_boot0']['type'] == 'sx1508':
-            raise NotImplementedError("Not yet implemented for this board and boot0 pin type")
+            raise NotImplementedError("Not (yet) implemented for this board and boot0 pin type")
 
         self.sx.configureGPIO(self.board_config['pins']['stm32_boot0']['pin'],SX1508_GPIO_MODE.OUTPUT, pullup=True)
 
