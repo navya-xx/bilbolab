@@ -4,11 +4,10 @@ from core.communication.serial.serial_interface import Serial_Interface, SerialM
 import robot.lowlevel.stm32_addresses as addresses
 from robot.communication.serial.bilbo_serial_messages import BILBO_SERIAL_MESSAGES
 from robot.lowlevel.stm32_general import twipr_firmware_revision
-from robot.lowlevel.stm32_messages import *
-from utils.callbacks import callback_handler, CallbackContainer, OPTIONAL
-from utils.ctypes_utils import CType
-from utils.events import ConditionEvent, event_handler
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_handler, CallbackContainer, OPTIONAL
+from core.utils.ctypes_utils import CType
+from core.utils.events import ConditionEvent, event_handler
+from core.utils.logging_utils import Logger
 
 logger = Logger("BILBO SERIAL")
 logger.setLevel("INFO")

@@ -1,17 +1,16 @@
 import ctypes
-import os
 import time
 
 # === OWN PACKAGES =====================================================================================================
-from control_board.control_board import RobotControl_Board
-from control_board.stm32.stm32 import resetSTM32
+from hardware.control_board import RobotControl_Board
+from hardware.stm32.stm32 import resetSTM32
 from robot.experiment.bilbo_experiment import BILBO_ExperimentHandler
 from robot.utilities.bilbo_utilities import BILBO_Utilities
 from robot.utilities.id import readID
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import EventListener, ConditionEvent, event_handler
-from utils.exit import ExitHandler, stop_program
-from utils.singletonlock.singletonlock import SingletonLock, terminate
+from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.events import EventListener, ConditionEvent, event_handler
+from core.utils.exit import ExitHandler, stop_program
+from core.utils.singletonlock.singletonlock import SingletonLock, terminate
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.control.definitions import BILBO_Control_Mode
 from robot.control.bilbo_control import BILBO_Control
@@ -20,11 +19,10 @@ from robot.estimation.bilbo_estimation import BILBO_Estimation
 from robot.logging.bilbo_logging import BILBO_Logging
 from robot.logging.bilbo_sample import BILBO_Sample_General
 from robot.sensors.bilbo_sensors import BILBO_Sensors
-from utils.logging_utils import Logger, setLoggerLevel
+from core.utils.logging_utils import Logger, setLoggerLevel
 from robot.supervisor.twipr_supervisor import TWIPR_Supervisor
-from utils.revisions import get_versions, is_ll_version_compatible
+from core.utils.revisions import get_versions, is_ll_version_compatible
 import robot.lowlevel.stm32_addresses as stm32_addresses
-from utils.time import precise_sleep, PerformanceTimer
 
 # === GLOBAL VARIABLES =================================================================================================
 
@@ -76,10 +74,10 @@ class BILBO:
 
     # === INIT =========================================================================================================
     def __init__(self, reset_stm32: bool = False):
-
-        terminate(lock_file="/tmp/twipr.lock")
-        self.lock = SingletonLock(lock_file="/tmp/twipr.lock", timeout=10)
+        self.lock = SingletonLock(lock_file="/tmp/twipr.lock", timeout=10, override=True, override_timeout=5)
         self.lock.__enter__()
+
+        time.sleep(0.1)
 
         self.logger = Logger("BILBO")
 

@@ -34,6 +34,7 @@ class TWIPR_ControlAddresses(enum.IntEnum):
     ADDRESS_CONTROL_RW_MAX_WHEEL_SPEED = 0x20
 
     ENABLE_VELOCITY_INTEGRAL_CONTROL = 0x31
+    ENABLE_TIC = 0x33
 
 class TWIPR_EstimationAddresses(enum.IntEnum):
     SET_THETA_OFFSET = 0x50

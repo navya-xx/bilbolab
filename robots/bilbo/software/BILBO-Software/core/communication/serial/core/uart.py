@@ -2,13 +2,12 @@ import logging
 import os
 import queue
 import threading
-import time
 
 import cobs.cobs as cobs
 import serial
 
-from utils.time import precise_sleep
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.time import precise_sleep
+from core.utils.callbacks import callback_handler, CallbackContainer
 
 SERIAL_BUFFER_SIZE = 8192
 

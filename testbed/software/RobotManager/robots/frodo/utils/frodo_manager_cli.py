@@ -1,7 +1,5 @@
-from extensions.cli.src.cli import Command, CommandSet, CommandArgument
-from robots.frodo.frodo import Frodo
+from extensions.cli.src.cli import Command, CommandSet
 from robots.frodo.frodo_manager import FrodoManager
-from utils.callbacks import Callback
 
 
 class FrodoManager_Commands(CommandSet):

@@ -1,14 +1,14 @@
 import time
 
-from extensions.cli.src.cli import CommandSet, CLI
+from extensions.cli.src.cli import CommandSet
 # === OWN PACKAGES =====================================================================================================
-from robots.bilbo.bilbo_manager import BILBO_Manager
-from robots.bilbo.utils.twipr_gui import TWIPR_GUI
-from robots.bilbo.utils.twipr_joystick_control import BILBO_JoystickControl
-from utils.exit import ExitHandler
-from utils.logging_utils import setLoggerLevel
-from utils.sound.sound import playSound, SoundSystem
-from utils.sound.sound import speak
+from robots.bilbo.manager.bilbo_manager import BILBO_Manager
+from robots.bilbo.robot.utils import TWIPR_GUI
+from robots.bilbo.robot.utils import BILBO_JoystickControl
+from core.utils.exit import ExitHandler
+from core.utils.logging_utils import setLoggerLevel
+from core.utils.sound.sound import playSound, SoundSystem
+from core.utils.sound.sound import speak
 
 # === GLOBAL VARIABLES =================================================================================================
 setLoggerLevel(logger=['tcp', 'server', 'udp'], level='DEBUG')
@@ -79,6 +79,7 @@ class SimpleTwiprJoystickControl:
         speak(f'Starting Bilbo joystick control') # on {self.robot_manager.deviceManager.address.replace(".", " dot ")}')
         self.robot_manager.start()
         self.joystick_control.start()
+        self.cli.start(commandSet=self.command_set)
         self.gui.start()
 
     # ------------------------------------------------------------------------------------------------------------------

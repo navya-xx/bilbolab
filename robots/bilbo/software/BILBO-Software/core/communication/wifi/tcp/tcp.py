@@ -17,11 +17,11 @@ import threading
 import time
 import cobs.cobs as cobs
 
-from utils.time import time_ms
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.time import time_ms
+from core.utils.callbacks import callback_handler, CallbackContainer
 from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Protocol
 from core.communication.protocol import Protocol
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 MAX_SOCKET_READ = 8192
 

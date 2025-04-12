@@ -1,7 +1,7 @@
 import ctypes
 import enum
 
-from utils.ctypes_utils import STRUCTURE
+from core.utils.ctypes_utils import STRUCTURE
 
 
 # Structures
@@ -57,4 +57,8 @@ class bilbo_control_configuration_ll_t:
         'vic_ki': ctypes.c_float,
         'vic_max_error': ctypes.c_float,
         'vic_v_limit': ctypes.c_float,
+        'tic_enabled': ctypes.c_bool,
+        'tic_ki': ctypes.c_float,
+        'tic_max_error': ctypes.c_float,
+        'tic_theta_limit': ctypes.c_float,
     }

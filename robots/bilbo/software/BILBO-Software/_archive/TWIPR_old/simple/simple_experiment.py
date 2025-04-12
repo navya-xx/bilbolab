@@ -3,10 +3,7 @@ sys.path.append("/home/lehmann/software/")
 
 import time
 from _archive.TWIPR_old.simple.simple_twipr import SimpleTWIPR
-import utils.joystick._archive.rpi_joystick as rpi_joystick
-
-
-
+from core import utils as rpi_joystick
 
 Ts = 0.01
 

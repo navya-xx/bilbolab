@@ -1,5 +1,5 @@
-from utils.files import fileExists, deleteFile, relativeToFullPath
-from utils.json_utils import readJSON, writeJSON
+from core.utils.files import fileExists, deleteFile, relativeToFullPath
+from core.utils.json_utils import readJSON, writeJSON
 from paths import config_path
 import math
 # hardware_definition = {

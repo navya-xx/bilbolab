@@ -4,15 +4,15 @@ import time
 from applications.BILBO.experiments.bilbo_experiments import BILBO_ExperimentHandler
 from applications.BILBO.tracker.bilbo_tracker import BILBO_Tracker
 from extensions.cli.cli_gui import CLI_GUI_Server
-from extensions.cli.src.cli import CLI, CommandSet, Command
-from extensions.joystick.joystick_manager import JoystickManager
-from robots.bilbo.bilbo_manager import BILBO_Manager
-from robots.bilbo.utils.twipr_joystick_control import BILBO_JoystickControl
-from utils.exit import ExitHandler
-from utils.logging_utils import setLoggerLevel, Logger
-from utils.loop import infinite_loop
-from utils.sound.sound import speak, SoundSystem
-from utils.files import relativeToFullPath
+from extensions.cli.src.cli import CommandSet
+from robots.bilbo.manager.bilbo_joystick_control import BILBO_JoystickControl
+from robots.bilbo.manager.bilbo_manager import BILBO_Manager
+# from robots.bilbo.robot.utils import BILBO_JoystickControl
+from core.utils.exit import ExitHandler
+from core.utils.logging_utils import setLoggerLevel, Logger
+from core.utils.loop import infinite_loop
+from core.utils.sound.sound import speak, SoundSystem
+from core.utils.files import relativeToFullPath
 
 # ======================================================================================================================
 ENABLE_SPEECH_OUTPUT = True
@@ -25,7 +25,6 @@ class BILBO_Application:
     robot_manager: BILBO_Manager
     tracker: BILBO_Tracker
     experiment_handler: BILBO_ExperimentHandler
-    joystick_control: BILBO_JoystickControl
 
     soundsystem: SoundSystem
 

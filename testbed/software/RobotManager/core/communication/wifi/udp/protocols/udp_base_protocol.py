@@ -1,7 +1,7 @@
 from typing import Union
 
 from core.communication.protocol import Protocol, Message
-from utils.network.network import getIPAddressOfDevice, ipv4_to_bytes
+from core.utils.network.network import ipv4_to_bytes
 
 
 class UDP_Base_Message(Message):

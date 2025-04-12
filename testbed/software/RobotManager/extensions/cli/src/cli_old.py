@@ -1,12 +1,10 @@
 import dataclasses
-import os
 import re
 import shlex
 import inspect
-import utils.colors as colors
-import utils.string as string
-from utils.callbacks import Callback, callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core import utils as colors, utils as string
+from core.utils.callbacks import Callback, callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 
 logger = Logger('CLI')
 logger.setLevel("INFO")
@@ -284,7 +282,7 @@ class Command:
         return help_string
 
 
-@callback_handler
+@callback_definition
 class CommandSet_Callbacks:
     update: CallbackContainer
 
@@ -561,7 +559,7 @@ class CommandSet:
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class CLI_Callbacks:
     update: CallbackContainer
 

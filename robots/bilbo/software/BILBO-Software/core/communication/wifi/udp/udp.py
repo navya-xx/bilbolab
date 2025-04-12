@@ -6,10 +6,10 @@ import time
 from core.communication.wifi.udp.protocols.udp_base_protocol import UDP_Base_Protocol
 from core.communication.wifi.udp.protocols.udp_json_protocol import UDP_JSON_Protocol, UDP_JSON_Message
 from core.communication.wifi.udp.udp_socket import UDP_Socket
-from utils.exit import ExitHandler
-from utils.network import getIPAdress
-from utils.logging_utils import Logger
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.exit import ExitHandler
+from core.utils.network import getIPAdress
+from core.utils.logging_utils import Logger
+from core.utils.callbacks import callback_handler, CallbackContainer
 
 logger = Logger("UDP")
 logger.setLevel('DEBUG')

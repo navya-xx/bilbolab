@@ -4,7 +4,7 @@ import extensions.simulation.src.core as core
 from extensions.simulation.src.core.environment import BASE_ENVIRONMENT_ACTIONS
 from extensions.simulation.src.objects.base_environment import BaseEnvironment
 from extensions.simulation.src.objects.frodo import FRODO_DynamicAgent
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 
 class FRODO_ENVIRONMENT_ACTIONS(enum.StrEnum):

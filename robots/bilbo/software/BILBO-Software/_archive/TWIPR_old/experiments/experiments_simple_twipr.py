@@ -6,7 +6,7 @@ import logging
 
 from robot.communication import TWIPR_Communication_STM32
 from robot.communication import reset_uart
-from utils.ctypes_utils import struct_to_dict
+from core.utils.ctypes_utils import struct_to_dict
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s %(message)s', datefmt='%Y-%m-%d,%H:%M:%S',
                     level='INFO')

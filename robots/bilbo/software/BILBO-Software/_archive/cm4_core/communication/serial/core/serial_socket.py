@@ -5,7 +5,7 @@ import time
 import cobs.cobs as cobs
 import serial
 
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 logger = Logger("SERIAL")
 

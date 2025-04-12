@@ -6,8 +6,8 @@ from core.communication.wifi.udp.protocols.udp_json_protocol import UDP_JSON_Mes
 from core.communication.wifi.udp.udp import UDP, UDP_Broadcast
 import core.communication.addresses as addresses
 from core.communication.wifi.tcp.tcp_connection import TCP_Connection
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.logging_utils import Logger
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.logging_utils import Logger
 from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol
 
@@ -15,7 +15,7 @@ logger = Logger('server')
 logger.setLevel('INFO')
 
 
-@callback_handler
+@callback_definition
 class TCPServerCallbacks:
     connected: CallbackContainer
     disconnected: CallbackContainer

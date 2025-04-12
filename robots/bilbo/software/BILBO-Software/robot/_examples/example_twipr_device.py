@@ -3,7 +3,7 @@ import math
 
 import numpy as np
 
-from utils.joystick._archive import rpi_joystick
+from core.utils.joystick._archive import rpi_joystick
 from robot.control.bilbo_control import BILBO_Control_Mode
 from robot.bilbo import BILBO
 import time

@@ -9,7 +9,7 @@ from textual.widgets import RichLog, Static, Input, TabbedContent, TabPane, Coll
     Header
 
 from extensions.cli.src.cli import CLI_Connector
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 # ======================================================================================================================
 log_function = None
@@ -138,7 +138,7 @@ class LogTabWidget(Widget):
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class CLI_GUI_App_Callbacks:
     command: CallbackContainer
 

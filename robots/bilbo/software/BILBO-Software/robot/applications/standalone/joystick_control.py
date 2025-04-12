@@ -1,9 +1,9 @@
 import threading
 import time
 
-from utils.exit import ExitHandler
-from utils.joystick.joystick import JoystickManager, JoystickManager_Callbacks, Joystick
-from utils.logging_utils import Logger
+from core.utils.exit import ExitHandler
+from core.utils.joystick.joystick import JoystickManager, Joystick
+from core.utils.logging_utils import Logger
 from robot.control.definitions import BILBO_Control_Mode
 from robot.bilbo import BILBO
 
@@ -96,17 +96,6 @@ class StandaloneJoystickControl:
                                         event='down',
                                         function=self.twipr.control.setMode,
                                         parameters={'mode': BILBO_Control_Mode.VELOCITY})
-
-        self.joystick.setButtonCallback(button=5,
-                                        event='down',
-                                        function=self.twipr.control.enableVelocityIntegralControl,
-                                        parameters={'enable': True})
-
-        self.joystick.setButtonCallback(button=4,
-                                        event='down',
-                                        function=self.twipr.control.enableVelocityIntegralControl,
-                                        parameters={'enable': False})
-
 
         logger.info("Joystick connected and assigned")
 

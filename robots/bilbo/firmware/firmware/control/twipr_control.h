@@ -86,6 +86,9 @@ typedef struct twipr_logging_control_t {
 } twipr_logging_control_t;
 
 
+
+
+
 typedef struct twipr_control_callbacks_t {
 	core_utils_CallbackContainer<4, uint16_t> error;
 	core_utils_CallbackContainer<4, uint32_t> step;
@@ -104,7 +107,30 @@ typedef struct twipr_control_configuration_t {
 	float vic_ki;  // Velocity Integral Control Ki
 	float vic_max_error; // Velocity Integral Control maxmum error
 	float vic_v_limit;  // Velocity Integral Control Velocity Limit
+
+	bool tic_enabled;
+	float tic_ki;
+	float tic_max_error;
+	float tic_theta_limit;
 } twipr_control_configuration_t;
+
+
+typedef enum control_event_t {
+	CONTROL_EVENT_ERROR = 0,
+	CONTROL_MODE_CHANGED = 1,
+	CONTROL_CONFIG_CHANGED = 2,
+//	CONTROL_TIC_CHANGED = 3,
+//	CONTROL_VIC_CHANGED = 4,
+} control_event_t;
+
+typedef struct control_event_message_data_t {
+	control_event_t event;
+	twipr_control_mode_t mode;
+	twipr_control_configuration_t config;
+	uint32_t tick;
+} control_event_message_data_t;
+
+typedef BILBO_Message<control_event_message_data_t, MSG_EVENT, BILBO_MESSAGE_CONTROL_EVENT> BILBO_Message_Control_Event;
 
 class TWIPR_ControlManager {
 
@@ -146,7 +172,9 @@ public:
 	bool setControlConfiguration(twipr_control_configuration_t config);
 	twipr_control_configuration_t getControlConfiguration();
 
-	bool enableSpeedIntegralControl(bool state);
+	bool enableVIC(bool state);
+
+	bool enableTIC(bool state);
 
 	twipr_control_status_t status = TWIPR_CONTROL_STATUS_IDLE;
 	twipr_control_mode_t mode = TWIPR_CONTROL_MODE_OFF;
@@ -178,10 +206,13 @@ private:
 	float _error_velocity_integral = 0;
 	float _updateVelocityIntegralController(float velocity);
 
+
+	float _tic_integral = 0;
+	float _updateTIC(float theta);
 	//	twipr_control_input_t _last_input;
 	//	twipr_estimation_state_t _last_dynamic_state;
 
-	TWIPR_Estimation *_estimation;
+	TWIPR_Estimation * _estimation = NULL;
 
 
 	uint32_t _tick;

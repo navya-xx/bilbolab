@@ -1,5 +1,5 @@
-from utils.callbacks import Callback
-from utils.logging_utils import Logger
+from core.utils.callbacks import Callback
+from core.utils.logging_utils import Logger
 import dataclasses
 import inspect
 

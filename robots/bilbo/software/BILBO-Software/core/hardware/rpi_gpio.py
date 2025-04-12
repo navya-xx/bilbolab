@@ -1,5 +1,5 @@
 from RPi import GPIO
-from utils.exit import ExitHandler
+from core.utils.exit import ExitHandler
 import atexit
 
 INIT = False

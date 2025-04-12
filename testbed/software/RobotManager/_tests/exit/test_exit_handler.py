@@ -1,6 +1,6 @@
 import time
 
-from utils.exit import ExitHandler
+from core.utils.exit import ExitHandler
 
 
 class ClassA:

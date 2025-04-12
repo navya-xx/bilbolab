@@ -1,4 +1,4 @@
-from utils.logging_utils import Logger, LOG_LEVELS, enable_redirection, setLoggerLevel
+from core.utils.logging_utils import Logger, enable_redirection, setLoggerLevel
 
 
 def log_redirect_function(log_entry, log, logger, level):

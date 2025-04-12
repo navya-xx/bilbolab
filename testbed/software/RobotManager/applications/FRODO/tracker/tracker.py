@@ -1,21 +1,17 @@
-import threading
 import time
 
-from applications.FRODO.tracker.assets import TrackedAsset, TrackedVisionRobot, vision_robot_application_assets, \
-    TrackedOrigin
+from applications.FRODO.tracker.assets import TrackedAsset, vision_robot_application_assets
 from extensions.optitrack.optitrack import OptiTrack, RigidBodySample
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent, EventListener
-from utils.logging_utils import Logger
-from utils.websockets.websockets import SyncWebsocketServer
-from utils.time import IntervalTimer, Timer
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.logging_utils import Logger
 
 # =====================================================================================================================
 logger = Logger('Tracker')
 logger.setLevel('INFO')
 
 
-@callback_handler
+@callback_definition
 class Tracker_Callbacks:
     """
     Container for tracker callback events.
@@ -24,7 +20,7 @@ class Tracker_Callbacks:
     description_received: CallbackContainer  # Called when a description is received from OptiTrack
 
 
-@event_handler
+@event_definition
 class Tracker_Events:
     """
     Container for tracker event handling.

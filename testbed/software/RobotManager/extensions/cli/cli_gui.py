@@ -15,19 +15,19 @@ if top_level_dir not in sys.path:
 
 from extensions.cli.src.cli import CLI, CommandSet
 from extensions.cli.src.cli_gui_app import CLI_GUI_App
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.exit import ExitHandler
-import utils.logging_utils as logging_utils
-from utils.logging_utils import Logger
-from utils.time import delayed_execution
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.exit import ExitHandler
+import core.utils.logging_utils as logging_utils
+from core.utils.logging_utils import Logger
+from core.utils.time import delayed_execution
 
 # === OWN PACKAGES =====================================================================================================
-from utils.websockets.websockets import SyncWebsocketClient, SyncWebsocketServer
+from core.utils.websockets.websockets import SyncWebsocketClient, SyncWebsocketServer
 
 
 # ======================================================================================================================
 
-@callback_handler
+@callback_definition
 class CLI_GUI_Server_Callbacks:
     command: CallbackContainer
 

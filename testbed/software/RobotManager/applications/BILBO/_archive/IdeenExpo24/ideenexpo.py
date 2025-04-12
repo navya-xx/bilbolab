@@ -1,7 +1,7 @@
 import time
 
 from applications.BILBO._archive.IdeenExpo24.src.ideenexpo_manager import IdeenExpoManager
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 
 logger = Logger('IdeenExpo')
 

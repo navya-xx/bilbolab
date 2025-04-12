@@ -1,6 +1,6 @@
 import time
 
-from utils.websockets.websockets import SyncWebsocketServer
+from core.utils.websockets.websockets import SyncWebsocketServer
 
 
 def main():

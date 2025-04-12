@@ -65,11 +65,18 @@ void TWIPR_Sequencer::update() {
 				tick_global };
 		BILBO_Message_Sequencer_Event msg(event_message_data);
 		sendMessage(msg);
+
+		// Disable Theta Integral Control and Velocity Integral Control during the sequence
+		this->config.control->enableTIC(false);
+		this->config.control->enableVIC(false);
 	}
 
 	// Check if we have reached the end of the sequence
 	if (this->sequence_tick >= this->loaded_sequence.length) {
 		this->finishSequence();
+
+		// Re-Enable VIC. TIC has to be manually enabled from the host
+		this->config.control->enableVIC(true);
 
 		return;
 	}

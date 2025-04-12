@@ -1,5 +1,4 @@
 from __future__ import annotations  # enable postponed evaluation of annotations
-import dataclasses
 import enum
 import logging
 import re
@@ -9,7 +8,7 @@ import extensions.simulation.src.core.spaces as core_spaces
 import extensions.simulation.src.core.scheduling as scheduling
 import extensions.simulation.src.core.physics as physics
 # from extensions.simulation.src.core.agents import Agent
-from utils.logging_utils import Logger
+from core.utils.logging_utils import Logger
 from extensions.simulation.src import core as core
 
 

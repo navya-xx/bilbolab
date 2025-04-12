@@ -4,8 +4,8 @@ import threading
 import time
 import webbrowser
 
-from utils.exit import ExitHandler
-from utils.websockets.websockets import SyncWebsocketServer
+from core.utils.exit import ExitHandler
+from core.utils.websockets.websockets import SyncWebsocketServer
 
 from dataclasses import dataclass, field, fields
 from typing import Optional, List, Dict, Union, Any

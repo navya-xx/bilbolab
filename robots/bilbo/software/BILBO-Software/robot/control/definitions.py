@@ -83,3 +83,11 @@ class TWIPR_Control_Sample:
     mode: BILBO_Control_Mode = dataclasses.field(default=BILBO_Control_Mode(BILBO_Control_Mode.OFF))
     configuration: str = ''
     input: BILBO_Control_Input = dataclasses.field(default_factory=BILBO_Control_Input)
+
+
+class BILBO_Control_Event_Type(enum.IntEnum):
+    ERROR = 0
+    MODE_CHANGED = 1
+    CONFIGURATION_CHANGED = 2
+    # TIC_CHANGED = 3
+    # VIC_CHANGED = 4

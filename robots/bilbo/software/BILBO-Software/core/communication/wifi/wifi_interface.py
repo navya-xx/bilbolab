@@ -5,11 +5,11 @@ import time
 from core.communication.protocol import Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
 from core.communication.wifi.wifi_connection import WIFI_Connection
-from core.communication.wifi.data_link import DataLink, Command, generateDataDict, generateCommandDict, CommandArgument
-from utils.callbacks import Callback, callback_handler, CallbackContainer
-from utils.events import event_handler
-from utils.logging_utils import Logger
-from utils.time import TimeoutTimer
+from core.communication.wifi.data_link import DataLink, Command, generateDataDict, generateCommandDict
+from core.utils.callbacks import Callback, callback_handler, CallbackContainer
+from core.utils.events import event_handler
+from core.utils.logging_utils import Logger
+from core.utils.time import TimeoutTimer
 
 logger = Logger("WIFI INTERFACE")
 

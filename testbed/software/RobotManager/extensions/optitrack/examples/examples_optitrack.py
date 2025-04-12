@@ -2,8 +2,8 @@ import time
 import math
 
 from extensions.optitrack.optitrack import OptiTrack, RigidBodySample
-from utils.websockets.websockets import SyncWebsocketServer
-from utils.orientation.orientation_2d import calculate_projection, angle_between_two_vectors
+from core.utils.websockets.websockets import SyncWebsocketServer
+from core.utils.orientation.orientation_2d import calculate_projection, angle_between_two_vectors
 
 data = {}
 

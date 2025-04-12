@@ -2,15 +2,14 @@ import time
 
 from core.device_manager import DeviceManager
 from robots.frodo.frodo import Frodo
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent
-from utils.exit import ExitHandler
-from utils.logging_utils import Logger
-from utils.time import delayed_execution
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.exit import ExitHandler
+from core.utils.logging_utils import Logger
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class FrodoManager_Callbacks:
     new_robot: CallbackContainer
     robot_disconnected: CallbackContainer
@@ -18,7 +17,7 @@ class FrodoManager_Callbacks:
 
 
 # ======================================================================================================================
-@event_handler
+@event_definition
 class FrodoManager_Events:
     new_robot: ConditionEvent
     robot_disconnected: ConditionEvent

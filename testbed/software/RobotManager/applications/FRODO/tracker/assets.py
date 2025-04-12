@@ -1,12 +1,11 @@
 import abc
 import dataclasses
-import math
 from abc import ABC
 
 import numpy as np
 
 from extensions.optitrack.optitrack import RigidBodySample
-from utils.orientation.orientation_2d import calculate_projection, angle_between_two_vectors, calculate_rotation_angle, \
+from core.utils.orientation.orientation_2d import calculate_projection, calculate_rotation_angle, \
     fix_coordinate_axes
 
 

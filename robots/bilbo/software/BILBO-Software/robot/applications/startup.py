@@ -7,19 +7,21 @@ import time
 from pathlib import Path
 from RPi import GPIO
 
+
+
 top_level_module = os.path.expanduser("~/robot/software")
 
 if top_level_module not in sys.path:
     sys.path.insert(0, top_level_module)
 
-from utils.network import get_current_user, get_own_hostname, getLocalIP_RPi, check_internet, get_wifi_ssid
-from utils.button import Button
-from utils.joystick.joystick_utils import scan_and_connect, find_connected_device_with_pattern
-from control_board.board_config import getBoardConfig
+from core.utils.button import Button
+from core.utils.network import get_current_user, get_own_hostname, getLocalIP_RPi, check_internet, get_wifi_ssid
+from core.utils.joystick.joystick_utils import scan_and_connect, find_connected_device_with_pattern
+from hardware.board_config import getBoardConfig
 from robot.utilities.display.display import Display
 from robot.utilities.display.pages import StatusPage
-from utils.singletonlock.singletonlock import terminate, check_for_running_lock_holder, get_lock_mode
-from utils.sound.sound import SoundSystem
+from core.utils.singletonlock.singletonlock import terminate, check_for_running_lock_holder, get_lock_mode
+from core.utils.sound.sound import SoundSystem
 from robot.hardware import get_hardware_definition
 
 
@@ -118,6 +120,7 @@ class Startup:
         self._thread.start()
         self._joystick_thread.start()
         self.sound_system.play('startup', volume=0.4)
+        # self.sound_system.speak("Startup")
 
     # ------------------------------------------------------------------------------------------------------------------
     def task(self):
@@ -231,6 +234,7 @@ if __name__ == '__main__':
     startup = Startup()
     startup.init()
     startup.start()
+
 
     try:
         while not False:

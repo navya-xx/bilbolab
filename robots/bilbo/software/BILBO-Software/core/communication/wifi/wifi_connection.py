@@ -5,13 +5,13 @@ import time
 
 import core.communication.wifi.tcp.tcp as tcp
 import core.communication.wifi.udp.udp as udp
-import utils.network as network
+from core.utils import network as network
 from core.communication.protocol import Message
 from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Message, TCP_Base_Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
-from utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_handler, CallbackContainer
 import core.settings as settings
-from utils.logging_utils import Logger, setLoggerLevel
+from core.utils.logging_utils import Logger, setLoggerLevel
 
 logger = Logger('wifi')
 logger.setLevel('DEBUG')

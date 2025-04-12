@@ -1,6 +1,6 @@
 import ctypes
 
-from utils.ctypes_utils import STRUCTURE
+from core.utils.ctypes_utils import STRUCTURE
 
 LOOP_TIME_CONTROL = 0.01
 LOOP_TIME = 0.1

@@ -7,12 +7,12 @@ from os import path
 import sys
 sys.path.append("/home/pi/software/")
 
-from utils.json_utils import readJSON, writeJSON
+from core.utils.json_utils import readJSON, writeJSON
 
 from _archive.TWIPR_old.experiments import SimpleTWIPR
 from _archive.TWIPR_old.utils import transform_input_2d_3d, getSignal
 
-import utils.joystick._archive.rpi_joystick as rpi_joystick
+from core import utils as rpi_joystick
 
 Ts = 0.01
 

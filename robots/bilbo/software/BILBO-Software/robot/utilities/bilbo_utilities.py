@@ -1,7 +1,11 @@
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.hardware import get_hardware_definition
-from utils.sound.sound import SoundSystem
+from core.utils.events import event_handler, ConditionEvent
+from core.utils.sound.sound import SoundSystem
 
+@event_handler
+class BILBO_Utilities_Events:
+    resume: ConditionEvent
 
 # ======================================================================================================================
 class BILBO_Utilities:
@@ -9,18 +13,27 @@ class BILBO_Utilities:
 
     def __init__(self, communication: BILBO_Communication):
         hardware_definition = get_hardware_definition()
+
         if hardware_definition['electronics']['sound']['active']:
             self.sound_system = SoundSystem(hardware_definition['electronics']['sound']['gain'])
         else:
             self.sound_system = None
 
         self.communication = communication
+        self.events = BILBO_Utilities_Events()
 
         self.communication.wifi.addCommand(
             identifier='speak',
             callback=self.speak,
             arguments=['message'],
             description='Speak the given message'
+        )
+
+        self.communication.wifi.addCommand(
+            identifier='resume',
+            callback=self.resume,
+            arguments=[],
+            description='Resume the robot'
         )
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -41,9 +54,19 @@ class BILBO_Utilities:
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
-    def speak(self, message):
-        if self.sound_system is None:
-            return
-        self.sound_system.speak(message)
+    def speak(self, message, on_host = True):
+        # if self.sound_system is None:
+        #     if on_host:
+        #         self.communication.wifi.sendEvent(event='speak',
+        #                                           data={
+        #                                               'message': message,
+        #                                           })
+        # self.sound_system.speak(message)
+        self.communication.wifi.sendEvent(event='speak',
+                                          data={
+                                              'message': message,
+                                          })
 
     # ------------------------------------------------------------------------------------------------------------------
+    def resume(self):
+        self.events.resume.set()

@@ -1,7 +1,7 @@
 import threading
 import time
 
-from utils.events import ConditionEvent, waitForEvents
+from core.utils.events import ConditionEvent, waitForEvents
 
 
 # Assume the previously provided classes and functions (ConditionEvent, waitForEvents, etc.) are imported or defined above.

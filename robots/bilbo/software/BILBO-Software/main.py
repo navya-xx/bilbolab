@@ -1,14 +1,7 @@
-import copy
-import ctypes
-import math
 import time
 
 from robot.bilbo import BILBO
-from robot.communication.serial.bilbo_serial_messages import BILBO_Debug_Message, BILBO_Sequencer_Event_Message
-from robot.control.definitions import BILBO_Control_Mode
-from robot.lowlevel.stm32_sample import BILBO_LL_Sample
-from utils.logging_utils import setLoggerLevel, Logger
-from utils.time import PerformanceTimer
+from core.utils.logging_utils import setLoggerLevel, Logger
 
 setLoggerLevel('wifi', 'ERROR')
 
@@ -21,12 +14,8 @@ def main():
     bilbo.init()
     bilbo.start()
 
-    time.sleep(2)
-
     while True:
         time.sleep(1)
-
-
 
 if __name__ == '__main__':
     main()

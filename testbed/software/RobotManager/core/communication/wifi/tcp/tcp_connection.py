@@ -8,14 +8,14 @@ from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Pro
 #     TCP_Handshake_Message
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
 from core.communication.protocol import Message
-from core.communication.wifi.tcp.tcp_socket import TCP_Socket, TCPSocketCallbacks
-from utils.callbacks import callback_handler, CallbackContainer
+from core.communication.wifi.tcp.tcp_socket import TCP_Socket
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 logger = logging.getLogger('tcp_c')
 logger.setLevel('INFO')
 
 
-@callback_handler
+@callback_definition
 class TCPConnectionCallback:
     disconnected: CallbackContainer
     handshake: CallbackContainer

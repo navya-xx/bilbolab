@@ -1,15 +1,14 @@
 import dataclasses
-import time
 
 import numpy
 import qmt
 
 from extensions.optitrack.lib.natnetclient_modified import NatNetClient
 # from extensions.optitrack.lib_peter.DataDescriptions import MarkerDescription
-from utils.callbacks import callback_handler, CallbackContainer
-from utils.events import event_handler, ConditionEvent
-from utils.logging_utils import Logger
-from utils.orientation.orientation_3d import transform_vector_from_a_to_b_frame
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
+from core.utils.logging_utils import Logger
+from core.utils.orientation.orientation_3d import transform_vector_from_a_to_b_frame
 
 logger = Logger("Optitrack")
 logger.setLevel('INFO')
@@ -47,14 +46,14 @@ class RigidBodyDescription:
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class OptiTrack_Callbacks:
     sample: CallbackContainer
     description_received: CallbackContainer
 
 
 # ======================================================================================================================
-@event_handler
+@event_definition
 class OptiTrack_Events:
     sample: ConditionEvent
     description_received: ConditionEvent

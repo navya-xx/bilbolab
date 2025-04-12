@@ -6,6 +6,8 @@
  */
 
 #include "twipr_control.h"
+#include "twipr_communication.h"
+
 
 TWIPR_ControlManager *manager;
 
@@ -66,12 +68,50 @@ void TWIPR_ControlManager::reset() {
 	this->_balancing_control.reset();
 	this->_speed_control.reset();
 	this->_error_velocity_integral = 0;
+	this->_tic_integral = 0;
+	this->enableTIC(false);
 	this->_resetExternalInput();
 }
 
-bool TWIPR_ControlManager::enableSpeedIntegralControl(bool state){
+/* ======================================================== */
+bool TWIPR_ControlManager::enableVIC(bool state){
 	this->control_config.vic_enabled = state;
 	this->_error_velocity_integral = 0;
+
+	control_event_message_data_t event_message_data = { .event =
+			CONTROL_CONFIG_CHANGED, .mode = mode, .config =
+			this->control_config, .tick = tick_global };
+
+	BILBO_Message_Control_Event message(event_message_data);
+	sendMessage(message);
+
+	return true;
+}
+
+/* ======================================================== */
+bool TWIPR_ControlManager::enableTIC(bool state) {
+
+	this->_tic_integral = 0;
+
+	bool current_state = this->control_config.tic_enabled;
+	this->control_config.tic_enabled = state;
+
+	if (current_state == state) {
+		return true;
+	}
+
+//	if (state == false){
+//		send_debug("TIC disabled");
+//	} else {
+//		send_debug("TIC enabled");
+//	}
+
+	control_event_message_data_t event_message_data = { .event =
+			CONTROL_CONFIG_CHANGED, .mode = mode, .config =
+			this->control_config, .tick = tick_global };
+
+	BILBO_Message_Control_Event message(event_message_data);
+	sendMessage(message);
 
 	return true;
 }
@@ -206,6 +246,15 @@ uint8_t TWIPR_ControlManager::setMode(twipr_control_mode_t mode) {
 
 	if (mode_changed) {
 		this->callbacks.mode_change.call(mode);
+
+		control_event_message_data_t event_message_data = { .event =
+				CONTROL_MODE_CHANGED, .mode = mode, .config =
+				this->control_config, .tick = tick_global };
+
+		BILBO_Message_Control_Event message(event_message_data);
+
+		sendMessage(message);
+
 	}
 
 	return 1;
@@ -358,6 +407,8 @@ bool TWIPR_ControlManager::setControlConfiguration(twipr_control_configuration_t
 twipr_control_configuration_t TWIPR_ControlManager::getControlConfiguration() {
 	twipr_control_configuration_t config;
 
+	config = this->control_config;
+
 	memcpy(config.K, this->_balancing_control.config.K, sizeof(float) * 8);
 	config.forward_kp = this->_speed_control.config.forward_config.Kp;
 	config.forward_ki = this->_speed_control.config.forward_config.Ki;
@@ -418,10 +469,10 @@ twipr_control_output_t TWIPR_ControlManager::_step_balancing(
 
 
 	float output_velocity_integral_control = this->_updateVelocityIntegralController(state.v);
+	float output_tic = this->_updateTIC(state.theta);
 
-
-	output.u_left = balancing_control_output.u_1 + output_velocity_integral_control;
-	output.u_right = balancing_control_output.u_2 + output_velocity_integral_control;
+	output.u_left = balancing_control_output.u_1 + output_velocity_integral_control + output_tic;
+	output.u_right = balancing_control_output.u_2 + output_velocity_integral_control + output_tic;
 
 	return output;
 
@@ -458,6 +509,35 @@ float TWIPR_ControlManager::_updateVelocityIntegralController(float velocity){
 
 	return output;
 }
+
+/* ======================================================== */
+float TWIPR_ControlManager::_updateTIC(float theta) {
+	if (this->control_config.tic_enabled == false){
+		return 0;
+	}
+
+	if (this->control_config.tic_theta_limit != 0){
+		if (abs(theta) > this->control_config.tic_theta_limit){
+			this->_tic_integral = 0;
+			this->enableTIC(false);
+			return 0;
+		}
+	}
+
+	this->_tic_integral += 1/this->config.freq * theta;
+
+	if (this->_tic_integral > this->control_config.tic_max_error){
+		this->_tic_integral = this->control_config.tic_max_error;
+	}
+	else if (this->_tic_integral < -this->control_config.tic_max_error){
+		this->_tic_integral = - this->control_config.tic_max_error;
+	}
+
+	float output = this->_tic_integral * this->control_config.tic_ki;
+
+	return output;
+}
+
 
 /* ======================================================== */
 twipr_control_output_t TWIPR_ControlManager::_step_velocity(

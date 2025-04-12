@@ -1,8 +1,8 @@
 import typing
-import utils as utils
+
+import core
 import core.communication.protocol as protocol
-from utils.bytes_utils import byteArrayToInt
-from ctypes import Structure, c_ubyte, c_uint8, c_uint16, c_uint32
+from core.utils.bytes_utils import byteArrayToInt
 
 
 # noinspection PyTypeChecker
@@ -60,9 +60,9 @@ class UART_Protocol(protocol.Protocol):
         :return:
         """
         msg = cls.Message()
-        msg.tick = utils.bytes_utils.byteArrayToInt(data[cls.idx_tick:cls.idx_tick + 4], "little")
+        msg.tick = core.utils.bytes_utils.byteArrayToInt(data[cls.idx_tick:cls.idx_tick + 4], "little")
 
-        payload_len = utils.bytes_utils.byteArrayToInt(data[cls.idx_len:cls.idx_len + 2])
+        payload_len = core.utils.bytes_utils.byteArrayToInt(data[cls.idx_len:cls.idx_len + 2])
         msg.cmd = data[cls.idx_cmd]
         msg.module = data[cls.idx_module]
         msg.flag = data[cls.idx_flag]
@@ -81,13 +81,13 @@ class UART_Protocol(protocol.Protocol):
         buffer = [0] * (cls.protocol_overhead + len(msg.data))
 
         buffer[cls.idx_header] = cls.header
-        buffer[cls.idx_tick:cls.idx_tick+4] = utils.bytes_utils.intToByteList(msg.tick, num_bytes=4, byteorder="little")
+        buffer[cls.idx_tick:cls.idx_tick+4] = core.utils.bytes_utils.intToByteList(msg.tick, num_bytes=4, byteorder="little")
 
         buffer[cls.idx_cmd] = msg.cmd
         buffer[cls.idx_module] = msg.module
         buffer[cls.idx_add_0:cls.idx_add_1+1] = msg.address
         buffer[cls.idx_flag] = msg.flag
-        buffer[cls.idx_len:cls.idx_len+2] = utils.bytes_utils.intToByteList(len(msg.data), num_bytes=2)
+        buffer[cls.idx_len:cls.idx_len+2] = core.utils.bytes_utils.intToByteList(len(msg.data), num_bytes=2)
         buffer[cls.idx_payload:cls.idx_payload + len(msg.data)] = msg.data
         buffer[cls.offset_crc8 + len(msg.data)] = 0
         buffer = bytes(buffer)
