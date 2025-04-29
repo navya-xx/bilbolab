@@ -1,11 +1,11 @@
 # === OWN PACKAGES =====================================================================================================
+from core.utils.exit import register_exit_callback
 from hardware.control_board import RobotControl_Board
 from robot.communication.serial.bilbo_comm_serial import BILBO_Serial_Communication
 from robot.communication.spi.twipr_comm_spi import BILBO_SPI_Interface
 from robot.communication.wifi.twipr_comm_wifi import BILBO_WIFI_Interface
-from core.utils.callbacks import callback_handler, CallbackContainer
-from core.utils.events import ConditionEvent, event_handler
-from core.utils.exit import ExitHandler
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import ConditionEvent, event_definition
 from core.utils.logging_utils import Logger, enable_redirection, setLoggerLevel, disable_redirection
 
 # ======================================================================================================================
@@ -16,13 +16,13 @@ logger.setLevel("INFO")
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Communication_Callbacks:
     rx_stm32_sample: CallbackContainer
 
 
 # ======================================================================================================================
-@event_handler
+@event_definition
 class BILBO_Communication_Events:
     rx_stm32_sample: ConditionEvent
     stm32_tick: ConditionEvent
@@ -58,8 +58,7 @@ class BILBO_Communication:
         self.wifi.callbacks.connected.register(self._wifi_connected_callback)
         self.wifi.callbacks.disconnected.register(self._wifi_disconnected_callback)
 
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
         # Configure Logging Redirect
         enable_redirection(self._log_redirection)
 

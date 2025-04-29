@@ -19,7 +19,7 @@ from extensions.cli.src.cli import CommandSet
 from robots.bilbo.manager.bilbo_joystick_control import BILBO_JoystickControl
 from robots.bilbo.manager.bilbo_manager import BILBO_Manager
 # from robots.bilbo.robot.utils import BILBO_JoystickControl
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import setLoggerLevel, Logger
 from core.utils.loop import infinite_loop
 from core.utils.sound.sound import speak, SoundSystem
@@ -62,8 +62,7 @@ class BILBO_Application:
         self.soundsystem.start()
 
         # Exit Handling
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):
@@ -89,8 +88,6 @@ class BILBO_Application:
         time.sleep(2)
         global ENABLE_SPEECH_OUTPUT
         ENABLE_SPEECH_OUTPUT = False
-
-    # ==================================================================================================================
 
 
     # ==================================================================================================================

@@ -6,10 +6,10 @@ import time
 from core.communication.wifi.udp.protocols.udp_base_protocol import UDP_Base_Protocol
 from core.communication.wifi.udp.protocols.udp_json_protocol import UDP_JSON_Protocol, UDP_JSON_Message
 from core.communication.wifi.udp.udp_socket import UDP_Socket
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.network import getIPAdress
 from core.utils.logging_utils import Logger
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 logger = Logger("UDP")
 logger.setLevel('DEBUG')
@@ -22,7 +22,7 @@ class UDP_Broadcast:
     time: float = 1
     _last_sent: float = 0
 
-@callback_handler
+@callback_definition
 class UDP_Callbacks:
     rx: CallbackContainer
 
@@ -72,8 +72,7 @@ class UDP:
         self.callbacks = UDP_Callbacks()
 
         self._thread = threading.Thread(target=self._threadFunction)
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):

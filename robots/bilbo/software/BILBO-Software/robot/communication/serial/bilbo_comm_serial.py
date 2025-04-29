@@ -4,9 +4,9 @@ from core.communication.serial.serial_interface import Serial_Interface, SerialM
 import robot.lowlevel.stm32_addresses as addresses
 from robot.communication.serial.bilbo_serial_messages import BILBO_SERIAL_MESSAGES
 from robot.lowlevel.stm32_general import twipr_firmware_revision
-from core.utils.callbacks import callback_handler, CallbackContainer, OPTIONAL
+from core.utils.callbacks import callback_definition, CallbackContainer, OPTIONAL
 from core.utils.ctypes_utils import CType
-from core.utils.events import ConditionEvent, event_handler
+from core.utils.events import ConditionEvent, event_definition
 from core.utils.logging_utils import Logger
 
 logger = Logger("BILBO SERIAL")
@@ -14,16 +14,17 @@ logger.setLevel("INFO")
 
 
 # === CALLBACKS ========================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Serial_Communication_Callbacks:
     rx: CallbackContainer
-    event: CallbackContainer(parameters=[('messages', list, OPTIONAL)])
+    event: CallbackContainer = CallbackContainer(parameters=[('messages', list, OPTIONAL)])
+    # event: CallbackContainer
     error: CallbackContainer
     debug: CallbackContainer
 
 
 # === EVENTS ===========================================================================================================
-@event_handler
+@event_definition
 class BILBO_Serial_Communication_Events:
     rx: ConditionEvent
     event = ConditionEvent(flags=[('type', type)])

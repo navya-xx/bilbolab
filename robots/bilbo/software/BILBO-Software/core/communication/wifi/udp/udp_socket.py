@@ -4,16 +4,19 @@ import threading
 import time
 from cobs import cobs
 
+from core.utils.exit import register_exit_callback
 from core.utils.network import getLocalIP_RPi
 from core.utils.logging_utils import Logger
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 logger = Logger('udp')
 logger.setLevel('DEBUG')
 
-@callback_handler
+
+@callback_definition
 class UDP_Socket_Callbacks:
     rx: CallbackContainer
+
 
 ########################################################################################################################
 class UDP_Socket:
@@ -58,19 +61,26 @@ class UDP_Socket:
         # self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        # ← Add these two!
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # (Linux only; allows truly simultaneous binds, but you MUST set it on *all* binds)
+        if hasattr(socket, "SO_REUSEPORT"):
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
         self._socket.settimeout(0)
 
         # set ip and port
         # self._socket.bind((str(self.address), self.port)) # FOR WINDOWS
         self._socket.bind(("", self.port))  # FOR RASPBERRY PI
         self._thread = threading.Thread(target=self._thread_fun, daemon=True)
+        register_exit_callback(self.close)
         self._exit = False
 
     # === METHODS ======================================================================================================
     def start(self):
         logger.info(
             f"Starting UDP socket on {self.address}:{self.port} (Filter Broadcast Echo={self.config['filterBroadcastEcho']})")
-
         self._thread.start()
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -95,9 +105,15 @@ class UDP_Socket:
         """
         self._exit = True
         self._socket.close()
+        if self._thread.is_alive():
+            self._thread.join(timeout=1)
 
         if self._thread.is_alive():
-            self._thread.join()
+            print("Warning: UDP receive‐thread didn't stop cleanly")
+        else:
+            print(f"Closed UDP socket on {self.address}:{self.port}")
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
     def _thread_fun(self):

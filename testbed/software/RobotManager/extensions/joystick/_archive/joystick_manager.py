@@ -72,7 +72,7 @@ class JoystickManager:
         joystick = None
         # Search for the joystick with this instance_id:
         for uuid, stick in self.joysticks.items():
-            if stick.id == instance_id:
+            if stick.group_id == instance_id:
                 joystick = self.joysticks[uuid]
                 break
 

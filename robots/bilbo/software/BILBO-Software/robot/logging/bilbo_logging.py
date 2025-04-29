@@ -12,10 +12,9 @@ from robot.experiment.bilbo_experiment import BILBO_ExperimentHandler
 from robot.logging.bilbo_sample import BILBO_Sample
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample, SAMPLE_BUFFER_LL_SIZE
 from robot.sensors.bilbo_sensors import BILBO_Sensors
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.dict_utils import copy_dict, optimized_deepcopy
 from core.utils.events import EventListener
-from core.utils.exit import ExitHandler
 from core.utils.csv_utils import CSVLogger
 from paths import experiments_path
 from core.utils.dataclass_utils import from_dict, asdict_optimized
@@ -28,7 +27,7 @@ logger.setLevel('DEBUG')
 
 
 # === Callbacks ========================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Logging_Callbacks:
     on_sample: CallbackContainer
     initialized: CallbackContainer
@@ -53,7 +52,6 @@ class BILBO_Logging:
 
     _sample_buffer_ll: list[dict]
     _csvLogger: CSVLogger
-    exit: ExitHandler
 
     _rx_stm32_event_listener: EventListener
 
@@ -211,6 +209,7 @@ class BILBO_Logging:
         # Send the current sample via WI-FI
         if self.comm.wifi.connected:
             self.comm.wifi.sendStream(sample)
+
 
         batches = 0
         # Process all available low-level sample batches from the queue.

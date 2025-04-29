@@ -1,3 +1,4 @@
+from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Message
 from core.device import Device
 from robots.bilbo.robot.bilbo_definitions import BILBO_Control_Mode
 from core.utils.callbacks import callback_definition, CallbackContainer
@@ -9,6 +10,7 @@ from core.utils.sound.sound import speak
 @callback_definition
 class BILBO_Core_Callbacks:
     stream: CallbackContainer
+
 
 # ======================================================================================================================
 @event_definition
@@ -38,17 +40,17 @@ class BILBO_Core:
         self.events = BILBO_Core_Events()
         self.interface_events = BILBO_Interface_Events()
 
-        self.device.events.event.on(self._handleLog, flags={'event': 'log'})
-        self.device.events.event.on(self._handleSpeakEvent, flags={'event': 'speak'})
-
-        self.device.events.stream.on(self._handleStream)
+        self.device.events.event.on(self._handleLogMessage, flags={'event': 'log'}, input_resource=True)
+        self.device.events.event.on(self._handleSpeakEventMessage, flags={'event': 'speak'}, input_resource=True)
+        self.device.events.stream.on(self._handleStream, input_resource=True)
 
     # ------------------------------------------------------------------------------------------------------------------
-    def beep(self, frequency=250, time_ms=250, repeats=1):
+    def beep(self, frequency=1000, time_ms=250, repeats=1):
         self.device.function(function='beep', data={'frequency': frequency, 'time_ms': time_ms, 'repeats': repeats})
 
     # ------------------------------------------------------------------------------------------------------------------
-    def _handleLog(self, log_data):
+    def _handleLogMessage(self, log_message: TCP_JSON_Message):
+        log_data = log_message.data
 
         if log_data['level'] == LOG_LEVELS['ERROR']:
             self.logger.error(f"({log_data['logger']}): {log_data['message']}")
@@ -63,7 +65,8 @@ class BILBO_Core:
             speak(f"{self.id}: {log_data['message']}")
 
     # ------------------------------------------------------------------------------------------------------------------
-    def _handleSpeakEvent(self, data):
+    def _handleSpeakEventMessage(self, message: TCP_JSON_Message):
+        data = message.data
         if data.get('message', None) is not None:
             speak(f"{self.id}: {data['message']}")
 

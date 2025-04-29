@@ -147,7 +147,7 @@ class WorldObjectGroup(WorldObject, ABC):
     objects: dict
 
     def addChildObject(self, obj: 'WorldObject'):
-        obj.scheduling.parent = self
+        obj.scheduling.group = self
         obj.parent = self
 
         # Check if the object has their own spaces. If so, there needs to be a mapping to the worlds spaces
@@ -165,7 +165,7 @@ class WorldObjectGroup(WorldObject, ABC):
         # Add all the child actions to own actions
         for name, action in self.scheduling.actions.items():
             if name in obj.scheduling.actions and not name.startswith("_"):
-                obj.scheduling.actions[name].parent = action
+                obj.scheduling.actions[name].group = action
 
 
 class RelativeConfigurationSpace(core_spaces.Space):
@@ -204,7 +204,7 @@ class World(scheduling.ScheduledObject):
                     logging.warning(f"There already exists an object with name \"{obj.name}\".")
                     break
 
-            obj.scheduling.parent = self
+            obj.scheduling.group = self
             obj.world = self
 
             # Check if the object has their own spaces. If so, there needs to be a mapping to the worlds spaces
@@ -224,7 +224,7 @@ class World(scheduling.ScheduledObject):
             # Add all the child actions to own actions
             for name, action in self.scheduling.actions.items():
                 if name in obj.scheduling.actions and not name.startswith("_"):
-                    obj.scheduling.actions[name].parent = action
+                    obj.scheduling.actions[name].group = action
 
             logging.info(f"Added Object \"{obj.name}\" {type(obj)} to the world.")
 

@@ -6,7 +6,7 @@ import threading
 import json
 
 from core.utils.events import event_definition, ConditionEvent
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.callbacks import CallbackContainer, callback_definition
 
 
@@ -38,8 +38,7 @@ class SyncWebsocketServer:
         self.callbacks = SyncWebsocketServer_Callbacks()
 
         # Exit handling
-        self.exit_handler = ExitHandler()
-        self.exit_handler.register(self.stop)
+        register_exit_callback(self.stop)
 
     def start(self):
         """
@@ -126,7 +125,6 @@ class SyncWebsocketClient:
     _thread: threading.Thread
     ws_thread: (None, threading.Thread)
     _exit: bool
-    exit: ExitHandler
 
     _debug: bool
 
@@ -148,8 +146,7 @@ class SyncWebsocketClient:
         # Disable the internal websocket logger, since it messes with other modules
         logging.getLogger("websocket").setLevel(logging.CRITICAL)
 
-        # self.exit = ExitHandler()
-        # self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     def start(self):
         self._thread.start()

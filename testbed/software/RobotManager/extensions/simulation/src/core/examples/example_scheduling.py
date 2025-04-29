@@ -43,7 +43,7 @@ def example_phases():
     # Define two actions
     action1 = scheduling.Action(name="Action 1", function=function2, parameters={'value1': "Action 1"},
                                 lambdas={'value2': lambda: global_value}, priority=2)
-    action1.parent = phase
+    action1.group = phase
     #
     # # Define a second action. This time put the parent in the definition of the object
     action2 = scheduling.Action(name='Action 2', function=function2, parameters={'value1': "Action 2"},
@@ -94,7 +94,7 @@ def example_scheduled_objects():
     action_2 = scheduling.Action(name="Action 2-1", function=lambda: print("Action 2"), object=object2, priority=3)
 
     # one can also set the parent phase by referencing over the object
-    action_2.parent = object1.scheduling.actions['Phase 1-1']
+    action_2.group = object1.scheduling.actions['Phase 1-1']
 
     object1.scheduling.actions['Phase 1-1']()
 

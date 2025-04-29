@@ -3,7 +3,7 @@ from ctypes import sizeof
 
 # === OWN PACKAGES =====================================================================================================
 from core.communication.spi.spi import SPI_Interface
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.dataclass_utils import from_dict
 # from utils.exit import ExitHandler
 from robot.lowlevel.stm32_sample import bilbo_ll_sample_struct, BILBO_LL_Sample
@@ -15,7 +15,7 @@ from core.utils.bytes_utils import intToByteList
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_SPI_Callbacks:
     rx_latest_sample: CallbackContainer
     rx_samples: CallbackContainer

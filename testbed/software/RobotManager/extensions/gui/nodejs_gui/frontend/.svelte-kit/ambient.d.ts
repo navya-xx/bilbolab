@@ -35,6 +35,7 @@ declare module '$env/static/private' {
 	export const TMPDIR: string;
 	export const OMF_PATH: string;
 	export const DEBUG_COLORS: string;
+	export const IJ_RESTARTER_LOG: string;
 	export const COLORTERM: string;
 	export const npm_config_color: string;
 	export const HOME: string;
@@ -89,6 +90,7 @@ declare module '$env/dynamic/private' {
 		TMPDIR: string;
 		OMF_PATH: string;
 		DEBUG_COLORS: string;
+		IJ_RESTARTER_LOG: string;
 		COLORTERM: string;
 		npm_config_color: string;
 		HOME: string;

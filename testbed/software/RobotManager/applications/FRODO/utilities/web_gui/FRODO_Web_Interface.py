@@ -4,7 +4,7 @@ import threading
 import time
 import webbrowser
 
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.websockets.websockets import SyncWebsocketServer
 
 from dataclasses import dataclass, field, fields
@@ -343,7 +343,7 @@ class FRODO_Web_Interface:
         self.default_group = Group(id="default")
         self.videos = {}
         self._thread = threading.Thread(target=self._task, daemon=True)
-        self.exit = ExitHandler(self.close)
+        register_exit_callback(self.close)
 
     def add_point(self, id: str, x: float, y: float, **kwargs) -> Point:
         return self.default_group.add_point(id, x, y, **kwargs)

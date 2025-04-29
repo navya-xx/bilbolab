@@ -7,7 +7,7 @@ from robots.bilbo.robot.bilbo_definitions import BILBO_Control_Mode, TWIPR_IDS, 
     TWIPR_USER_NAME, TWIPR_REMOTE_STOP_COMMAND
 from robots.bilbo.manager.robotscanner import RobotScanner
 from core.utils.time import delayed_execution
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import Logger
 from core.utils.network.ssh import executeCommandOverSSH
 
@@ -63,8 +63,7 @@ class BILBO_Manager:
         self.cli_command_set = BILBO_Manager_CommandSet(self)
 
         # Exit Handler
-        self.exit_handler = ExitHandler()
-        self.exit_handler.register(self.close)
+        register_exit_callback(self.close)
 
     @property
     def connected_robots(self):

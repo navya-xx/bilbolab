@@ -7,12 +7,12 @@ import cobs.cobs as cobs
 import serial
 
 from core.utils.time import precise_sleep
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 SERIAL_BUFFER_SIZE = 8192
 
 
-@callback_handler
+@callback_definition
 class UART_Socket_Callbacks:
     rx: CallbackContainer
     # connected: ...

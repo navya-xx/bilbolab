@@ -16,7 +16,7 @@ from robots.frodo.frodo_manager import FrodoManager
 from robots.frodo.utils.frodo_cli import FRODO_CommandSet
 from robots.frodo.utils.frodo_manager_cli import FrodoManager_Commands
 from core.utils.callbacks import Callback
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from applications.FRODO.utilities.web_gui.FRODO_Web_Interface import FRODO_Web_Interface, Group
 from core.utils.sound.sound import SoundSystem
 from core.utils.sound.sound import speak
@@ -86,7 +86,7 @@ class FRODO_Application:
 
         # self.timer = PrecisionTimer(timeout=0.1, repeat=True, callback=self.update)
 
-        self.exit = ExitHandler(self.close)
+        register_exit_callback(self.close)
 
     # === METHODS ======================================================================================================
     def init(self):
@@ -152,17 +152,17 @@ class FRODO_Application:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _robot_disconnected_callback(self, robot):
-        speak(f'Robot {robot.id} disconnected')
-        self.cli_gui.sendLog(f'Robot {robot.id} disconnected')
+        speak(f'Robot {robot.group_id} disconnected')
+        self.cli_gui.sendLog(f'Robot {robot.group_id} disconnected')
 
-        if robot.id in self.cli_gui.cli.root_set.child_sets['robots'].child_sets:
-            self.cli_gui.cli.root_set.child_sets['robots'].removeChild(robot.id)
+        if robot.group_id in self.cli_gui.cli.root_set.child_sets['robots'].child_sets:
+            self.cli_gui.cli.root_set.child_sets['robots'].removeChild(robot.group_id)
             self.cli_gui.updateCLI()
 
         # Remove the agent
-        if robot.id in self.agents:
-            del self.agents[robot.id]
-            self.plotter.remove_element_by_id(f'agents/{robot.id}')
+        if robot.group_id in self.agents:
+            del self.agents[robot.group_id]
+            self.plotter.remove_element_by_id(f'agents/{robot.group_id}')
 
     # ------------------------------------------------------------------------------------------------------------------
     def _new_robot_callback(self, robot: Frodo):

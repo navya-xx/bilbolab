@@ -24,7 +24,7 @@ class IdeenExpoGUI(NodeJSGui):
 
     def removeJoystick(self, removed_joystick):
         for joystick in self.gui_joystick_array:
-            if joystick.get('id') == removed_joystick.id:
+            if joystick.get('id') == removed_joystick.group_id:
                 self.gui_joystick_array.remove(joystick)
                 self.sendJoystickMessage()
 

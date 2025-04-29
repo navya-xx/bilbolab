@@ -3,11 +3,10 @@ import threading
 
 from core.communication.serial.core.uart import UART_Socket
 from core.communication.serial.core.serial_protocol import UART_Protocol
-from core.utils.callbacks import callback_handler, CallbackContainer
-from core.utils.exit import ExitHandler
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 
-@callback_handler
+@callback_definition
 class SerialConnection_Callbacks:
     rx: CallbackContainer
 
@@ -24,7 +23,6 @@ class SerialConnection:
 
     callbacks: SerialConnection_Callbacks
     events: dict[str, threading.Event]
-    exit: ExitHandler
     _thread: threading.Thread
     _exit: bool
 

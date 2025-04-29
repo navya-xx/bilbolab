@@ -11,7 +11,7 @@ from robot.experiment.bilbo_experiment import BILBO_ExperimentHandler
 from robot.logging.bilbo_sample import BILBO_Sample
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample, SAMPLE_BUFFER_LL_SIZE
 from robot.sensors.bilbo_sensors import BILBO_Sensors
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.dict_utils import copy_dict, optimized_deepcopy
 from core.utils.events import EventListener
 from core.utils.exit import ExitHandler
@@ -27,7 +27,7 @@ logger.setLevel('DEBUG')
 
 
 # === Callbacks ========================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Logging_Callbacks:
     on_sample: CallbackContainer
     initialized: CallbackContainer

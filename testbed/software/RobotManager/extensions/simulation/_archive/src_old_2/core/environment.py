@@ -431,7 +431,7 @@ class ObjectGroup(Object):
 
             # Check for duplicate id within the group.
             for _, other in self.objects.items():
-                if obj.id == other.id:
+                if obj.id == other.group_id:
                     logging.warning(f"There already exists an object with id \"{obj.id}\" in the group.")
                     break
 

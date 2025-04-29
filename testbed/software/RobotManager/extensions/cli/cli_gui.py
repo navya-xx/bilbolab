@@ -16,7 +16,7 @@ if top_level_dir not in sys.path:
 from extensions.cli.src.cli import CLI, CommandSet
 from extensions.cli.src.cli_gui_app import CLI_GUI_App
 from core.utils.callbacks import callback_definition, CallbackContainer
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 import core.utils.logging_utils as logging_utils
 from core.utils.logging_utils import Logger
 from core.utils.time import delayed_execution
@@ -205,7 +205,6 @@ class CLI_GUI_Client:
     connected: bool
 
     _exit: bool = False
-    exit: ExitHandler
 
     def __init__(self, address, port=8090):
         self.websocket = SyncWebsocketClient(address, port, debug=False)
@@ -219,8 +218,7 @@ class CLI_GUI_Client:
         self.app.callbacks.command.register(self._gui_command_callback)
 
         self._exit = False
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):

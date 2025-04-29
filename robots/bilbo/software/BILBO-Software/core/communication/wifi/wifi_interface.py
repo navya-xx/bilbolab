@@ -6,15 +6,15 @@ from core.communication.protocol import Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
 from core.communication.wifi.wifi_connection import WIFI_Connection
 from core.communication.wifi.data_link import DataLink, Command, generateDataDict, generateCommandDict
-from core.utils.callbacks import Callback, callback_handler, CallbackContainer
-from core.utils.events import event_handler
+from core.utils.callbacks import Callback, callback_definition, CallbackContainer
+from core.utils.events import event_definition
 from core.utils.logging_utils import Logger
 from core.utils.time import TimeoutTimer
 
 logger = Logger("WIFI INTERFACE")
 
 
-@callback_handler
+@callback_definition
 class WIFI_Interface_Callbacks:
     """
     Container for WIFI Interface callbacks.
@@ -30,7 +30,7 @@ class WIFI_Interface_Callbacks:
     heartbeat_timeout: CallbackContainer
 
 
-@event_handler
+@event_definition
 class WIFI_Interface_Events:
     """
     Event handler for WIFI Interface events.

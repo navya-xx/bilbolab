@@ -6,7 +6,7 @@ from extensions.cli.src.cli import CommandSet, Command, CommandArgument
 from extensions.joystick.joystick_manager import JoystickManager, Joystick
 from robots.bilbo.robot.bilbo import BILBO
 from robots.bilbo.manager.bilbo_manager import BILBO_Manager
-from robots.bilbo.robot.utils.twipr_data import TWIPR_Control_Mode
+from robots.bilbo.robot.bilbo_data import TWIPR_Control_Mode
 from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.events import event_definition, ConditionEvent
 from core.utils.logging_utils import Logger

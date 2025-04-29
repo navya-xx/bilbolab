@@ -4,7 +4,7 @@ from core.device_manager import DeviceManager
 from robots.frodo.frodo import Frodo
 from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.events import event_definition, ConditionEvent
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import Logger
 
 
@@ -34,8 +34,6 @@ class FrodoManager:
     robots: dict[str, Frodo]
     callbacks: FrodoManager_Callbacks
 
-    exit: ExitHandler
-
     def __init__(self):
         self.deviceManager = DeviceManager()
         self.robots = {}
@@ -45,8 +43,7 @@ class FrodoManager:
         self.deviceManager.callbacks.device_disconnected.register(self._deviceDisconnected_callback)
         self.deviceManager.callbacks.stream.register(self._deviceStream_callback)
 
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ==================================================================================================================
     def init(self):

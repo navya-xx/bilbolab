@@ -7,8 +7,6 @@ import time
 from pathlib import Path
 from RPi import GPIO
 
-
-
 top_level_module = os.path.expanduser("~/robot/software")
 
 if top_level_module not in sys.path:
@@ -16,7 +14,7 @@ if top_level_module not in sys.path:
 
 from core.utils.button import Button
 from core.utils.network import get_current_user, get_own_hostname, getLocalIP_RPi, check_internet, get_wifi_ssid
-from core.utils.joystick.joystick_utils import scan_and_connect, find_connected_device_with_pattern
+from core.utils.bluetooth.joystick_utils import scan_and_connect, find_connected_device_with_pattern
 from hardware.board_config import getBoardConfig
 from robot.utilities.display.display import Display
 from robot.utilities.display.pages import StatusPage
@@ -234,7 +232,6 @@ if __name__ == '__main__':
     startup = Startup()
     startup.init()
     startup.start()
-
 
     try:
         while not False:

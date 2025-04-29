@@ -104,9 +104,9 @@ class IdeenExpoManager:
         }
 
         logger.info(
-            f"Added Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].id})")
+            f"Added Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].group_id})")
         self.gui.print(
-            f"Added Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].id})")
+            f"Added Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].group_id})")
 
         if joystick is not self._masterJoystick:
             joystick.setButtonCallback(button=1, event='down', function=robot.setControlMode, parameters={'mode': 2})
@@ -121,14 +121,14 @@ class IdeenExpoManager:
             return
 
         # Check if there is a joystick assignment, if not, return
-        if joystick.id not in self.joystick_assignments.keys():
+        if joystick.group_id not in self.joystick_assignments.keys():
             return
 
         logger.info(
-            f"Remove Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].id})")
+            f"Remove Joystick assignment ({joystick.group_id} -> {self.joystick_assignments[joystick.group_id]['robot'].group_id})")
         self.gui.print(
-            f"Remove Joystick assignment ({joystick.id} -> {self.joystick_assignments[joystick.id]['robot'].id})")
-        self.joystick_assignments.pop(joystick.id)
+            f"Remove Joystick assignment ({joystick.group_id} -> {self.joystick_assignments[joystick.group_id]['robot'].group_id})")
+        self.joystick_assignments.pop(joystick.group_id)
 
         if joystick is not self._masterJoystick:
             joystick.clearAllButtonCallbacks()
@@ -186,20 +186,20 @@ class IdeenExpoManager:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _joystickDisconnected_callback(self, joystick, *args, **kwargs):
-        if joystick.id not in self._connected_joysticks.keys():
+        if joystick.group_id not in self._connected_joysticks.keys():
             return
 
         # Remove the joystick from the list of connected joysticks
-        self._connected_joysticks.pop(joystick.id)
-        logger.info(f"Joystick disconnected. ID: {joystick.id})")
-        self.gui.print(f"Joystick disconnected. ID: {joystick.id})")
+        self._connected_joysticks.pop(joystick.group_id)
+        logger.info(f"Joystick disconnected. ID: {joystick.group_id})")
+        self.gui.print(f"Joystick disconnected. ID: {joystick.group_id})")
 
         if joystick == self._masterJoystick:
             self.masterJoystick = None
             logger.info("Master Joystick disconnected!")
             self.gui.print("Master Joystick disconnected!")
 
-        if joystick.id in self.joystick_assignments.keys():
+        if joystick.group_id in self.joystick_assignments.keys():
             self._unassignJoystick(joystick)
 
         # Notify the GUI
@@ -230,17 +230,17 @@ class IdeenExpoManager:
     # ------------------------------------------------------------------------------------------------------------------
     def _newRobot_callback(self, robot, *args, **kwargs):
         self.gui.addRobot(robot)
-        self.gui.print(f"Robot connected: {robot.id}")
+        self.gui.print(f"Robot connected: {robot.group_id}")
 
     # ------------------------------------------------------------------------------------------------------------------
     def _robotDisconnected_callback(self, robot, *args, **kwargs):
 
         self.gui.removeRobot(robot)
-        self.gui.print(f"Robot disconnected: {robot.id}")
+        self.gui.print(f"Robot disconnected: {robot.group_id}")
 
         # Check if there were any joystick assignments
         for joystick_id, assignment in self.joystick_assignments.items():
-            print(f"Remove assignment {joystick_id} and {robot.id}")
+            print(f"Remove assignment {joystick_id} and {robot.group_id}")
             if assignment['robot'] == robot:
                 self._unassignJoystick(joystick_id)
                 return

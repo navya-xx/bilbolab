@@ -217,6 +217,9 @@ def generate_default_config_small():
     config.statefeedback.vic.max_error = 0.2
     config.statefeedback.vic.velocity_threshold = 0.05
     config.statefeedback.vic.Ki = 0.1
+
+    config.statefeedback.tic.Ki = 0.15
+
     save_config(config)
 
 
