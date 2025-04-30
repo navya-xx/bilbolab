@@ -1,12 +1,12 @@
 import time
 import core.hardware.eeprom as eeprom
+from core.utils.exit import register_exit_callback
 from hardware.board_config import getBoardConfig
 from hardware.hardware.gpio import GPIO_Output
 from core.utils.files import fileExists, deleteFile, relativeToFullPath
 from paths import config_path
 from hardware.shields.definitions import BILBO_SHIELD_REV_2_ID, SHIELD_ID_ADDRESS, BILBO_SHIELD_REV2_CONFIG_FILE
 from core.utils.json_utils import writeJSON
-from core.utils.exit import ExitHandler
 from core.utils.button import Button
 
 bilbo_shield_rev_2_config = {
@@ -52,8 +52,7 @@ class BILBO_Shield_Rev2:
                                        pin_type=bilbo_shield_rev_2_config['pins']['button2_led']['type'],
                                        value=0)
 
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     def close(self, *args, **kwargs):
         self.button1_led.write(0)

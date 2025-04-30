@@ -1,6 +1,6 @@
 from robots.bilbo.robot.bilbo_definitions import TWIPR_IDS
 from core.utils.callbacks import callback_definition, CallbackContainer
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.network.network import pingAddresses, resolveHostname
 import threading
 import time
@@ -38,8 +38,7 @@ class RobotScanner:
 
         self.callbacks = RobotScannerCallbacks()
 
-        self.exit_handler = ExitHandler()
-        self.exit_handler.register(self.stop)
+        register_exit_callback(self.stop)
 
     # ==================================================================================================================
     def _scan_network(self):

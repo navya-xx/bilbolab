@@ -9,7 +9,7 @@ def resetSTM32():
     board_config = getBoardConfig()
 
     if board_config['rev'] == 'rev3':
-        raise NotImplementedError("Not implemented for rev3 yet")
+        raise NotImplementedError("Not implemented for rev3")
 
     elif board_config['rev'] == 'rev4':
         sx = SX1508(reset=False)

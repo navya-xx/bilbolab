@@ -9,7 +9,7 @@ import webbrowser
 
 from core.utils.callbacks import callback_definition, CallbackContainer
 from core.utils.websockets.websockets import SyncWebsocketServer as WebsocketClass
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 
 frontend_dir = f"{os.path.dirname(__file__)}/frontend/"
 
@@ -48,8 +48,7 @@ class NodeJSGui:
 
         self.callbacks = NodeJSGui_Callbacks()
 
-        self.exit_handler = ExitHandler()
-        self.exit_handler.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):

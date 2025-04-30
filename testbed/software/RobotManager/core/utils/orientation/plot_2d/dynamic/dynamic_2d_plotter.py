@@ -3,7 +3,7 @@ import threading
 import time
 import webbrowser
 
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.websockets.websockets import SyncWebsocketServer
 
 from dataclasses import dataclass, field, asdict
@@ -344,7 +344,7 @@ class Dynamic2DPlotter:
         self.default_group = Group(id="default", fullPath="default")
         # Start the background thread that will send updates.
         self._thread = threading.Thread(target=self._task, daemon=True)
-        self.exit = ExitHandler(self.close)
+        register_exit_callback(self.close)
 
     # Add functions to add elements to the default group.
     def add_point(self, id: str, x: float, y: float, **kwargs) -> Point:

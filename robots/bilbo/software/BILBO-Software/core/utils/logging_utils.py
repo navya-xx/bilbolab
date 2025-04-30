@@ -15,7 +15,8 @@ import atexit
 import threading
 from datetime import datetime
 from dataclasses import dataclass
-from core.utils import string_utils as string_utils, colors
+from core.utils import colors
+from core.utils import string_utils as string_utils
 
 # Define mapping for log level names to numeric levels
 LOG_LEVELS = {

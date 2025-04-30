@@ -1,5 +1,6 @@
 import time
 
+from core.utils.exit import register_exit_callback
 # === OWN PACKAGES =====================================================================================================
 from hardware.hardware.gpio import GPIO_Output
 from core.communication.i2c.i2c import I2C_Interface
@@ -11,7 +12,6 @@ from core.utils.debug import debug_print
 from core.communication.serial.serial_interface import Serial_Interface
 from hardware.board_config import getBoardConfig
 from hardware.io_extension.io_extension import RobotControl_IO_Extension
-from core.utils.exit import ExitHandler
 from core.utils.logging_utils import Logger
 from hardware.lowlevel_definitions import bilbo_external_rgb_struct, BILBO_AddressTables, BILBO_GeneralAddresses, \
     twipr_beep_struct
@@ -34,7 +34,6 @@ class RobotControl_Board:
     uart_reset_pin: GPIO_Output
 
     io_extension: RobotControl_IO_Extension
-    exit: ExitHandler
 
     shield = None
 
@@ -107,8 +106,7 @@ class RobotControl_Board:
         self.wifi_interface.callbacks.disconnected.register(self.setStatusLed, inputs={'state': False},
                                                             discard_inputs=True)
 
-        self.exit = ExitHandler()
-        self.exit.register(self.handle_exit)
+        register_exit_callback(self.handle_exit)
 
     # === METHODS ======================================================================================================
     def init(self):

@@ -174,11 +174,19 @@ def copyFile(src, dest):
     """
     Copy a file from source to destination.
 
+    If the destination is a directory, the file will be copied into that directory
+    using the source filename.
+
     :param src: Source file path.
-    :param dest: Destination file path.
+    :param dest: Destination file path or directory.
     """
     dest = os.path.expanduser(dest)
     src = os.path.expanduser(src)
+
+    if os.path.isdir(dest):
+        filename = os.path.basename(src)
+        dest = os.path.join(dest, filename)
+
     shutil.copy2(src, dest)
 
 def copyFolder(src, dest):

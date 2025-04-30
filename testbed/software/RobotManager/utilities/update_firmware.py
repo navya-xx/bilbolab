@@ -3,6 +3,7 @@ from tkinter import simpledialog, filedialog, messagebox
 import subprocess
 import os
 
+
 class CredentialDialog(simpledialog.Dialog):
     def body(self, master):
         self.title("Enter SSH Credentials")
@@ -31,11 +32,13 @@ class CredentialDialog(simpledialog.Dialog):
             self.password_entry.get()
         )
 
+
 def ask_for_credentials():
     root = tk.Tk()
     root.withdraw()
     dialog = CredentialDialog(root)
     return dialog.result
+
 
 def test_ssh_connection(hostname, username, password):
     try:
@@ -53,6 +56,7 @@ def test_ssh_connection(hostname, username, password):
         print(f"SSH connection failed: {e}")
         return False
 
+
 def transfer_file(hostname, username, password, local_path, remote_path="/home/admin/"):
     file_name = os.path.basename(local_path)
     destination = f"{username}@{hostname}:{remote_path}/{file_name}"
@@ -64,8 +68,9 @@ def transfer_file(hostname, username, password, local_path, remote_path="/home/a
     result = subprocess.run(scp_cmd)
     return result.returncode == 0, f"{remote_path}/{file_name}"
 
+
 def run_remote_command(hostname, username, password, remote_file_path):
-    cmd = f"python3 /home/admin/robot/software/firmware_update.py {remote_file_path}"
+    cmd = f"python3 /home/admin/robot/software/utilities/firmware_update.py {remote_file_path}"
     ssh_cmd = [
         "sshpass", "-p", password,
         "ssh", "-o", "StrictHostKeyChecking=no",
@@ -73,6 +78,7 @@ def run_remote_command(hostname, username, password, remote_file_path):
     ]
     result = subprocess.run(ssh_cmd, capture_output=True, text=True)
     return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
+
 
 def main():
     creds = ask_for_credentials()
@@ -109,6 +115,7 @@ def main():
         f"{username}@{hostname}", f"rm {remote_file_path}"
     ]
     subprocess.run(delete_cmd)
+
 
 if __name__ == "__main__":
     main()

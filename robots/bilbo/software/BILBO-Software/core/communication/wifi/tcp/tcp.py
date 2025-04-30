@@ -18,7 +18,7 @@ import time
 import cobs.cobs as cobs
 
 from core.utils.time import time_ms
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Protocol
 from core.communication.protocol import Protocol
 from core.utils.logging_utils import Logger
@@ -29,7 +29,7 @@ logger = Logger('tcp')
 logger.setLevel('DEBUG')
 
 
-@callback_handler
+@callback_definition
 class TCP_Socket_Callbacks:
     connected: CallbackContainer
     disconnected: CallbackContainer

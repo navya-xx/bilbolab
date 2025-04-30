@@ -2,7 +2,7 @@ import threading
 import time
 from threading import Timer as ThreadTimer
 
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 
 
 def time_ms():
@@ -64,7 +64,7 @@ def precise_sleep(seconds: float):
         pass
 
 
-@callback_handler
+@callback_definition
 class Timer_Callbacks:
     timeout: CallbackContainer
 

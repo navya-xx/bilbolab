@@ -182,6 +182,8 @@ void TWIPR_ControlManager::update() {
 //	control_output.u_left = 0;
 //	control_output.u_right = 0;
 	// Write the output to the motors
+	send_info("Control output: %f %f", control_output.u_left, control_output.u_right);
+
 	this->_setTorque(control_output);
 
 	// Increase the tick

@@ -1,6 +1,7 @@
 import enum
 
-TWIPR_IDS = ['twipr1', 'twipr2', 'twipr3', 'twipr4', 'twipr5', 'twipr6', 'twipr7', 'twipr8', 'bilbo1', 'bilbo2', 'bilbo3']
+TWIPR_IDS = ['twipr1', 'twipr2', 'twipr3', 'twipr4', 'twipr5', 'twipr6', 'twipr7', 'twipr8', 'bilbo1', 'bilbo2',
+             'bilbo3']
 
 TWIPR_REMOTE_STOP_COMMAND = "pkill -f 'python3 ./software/start_device.py'"
 TWIPR_REMOTE_START_COMMAND = "python3 ./software/start_device.py"

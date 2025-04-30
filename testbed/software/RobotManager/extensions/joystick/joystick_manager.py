@@ -11,10 +11,10 @@ environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 import pygame
 
 # === CUSTOM PACKAGES ==================================================================================================
-from extensions.joystick.Mappings.joystick_mappings import joystick_mappings
+from extensions.joystick.joystick_mappings import joystick_mappings
 from core.utils.callbacks import callback_definition, CallbackContainer, Callback, CallbackGroup
 from core.utils.events import event_definition, ConditionEvent
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import Logger
 
 # ======================================================================================================================
@@ -38,8 +38,7 @@ class _JoystickManagerProcess:
 
         self._thread = threading.Thread(target=self.threadFunction)
         self._exit = False
-        self.exit = ExitHandler(suppress_print=True)
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     @staticmethod
@@ -187,9 +186,11 @@ class JoystickManager:
     _joystick_dict: dict
 
     # === INIT =========================================================================================================
-    def __init__(self):
+    def __init__(self, accept_unmapped_joysticks: bool = False):
 
         self.joysticks = {}
+
+        self.accept_unmapped_joysticks = accept_unmapped_joysticks
 
         self.callbacks = JoystickManager_Callbacks()
 
@@ -205,8 +206,7 @@ class JoystickManager:
         self._process = multiprocessing.Process(target=joystick_event_process,
                                                 args=(self._event_rx_queue, self._tx_queue, self._joystick_dict))
 
-        self.exit_handler = ExitHandler()
-        self.exit_handler.register(self.exit)
+        register_exit_callback(self.exit)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):
@@ -214,7 +214,7 @@ class JoystickManager:
 
     # ------------------------------------------------------------------------------------------------------------------
     def start(self):
-        logger.info("Joystick manager started")
+        logger.info(f"Joystick manager started. Accept unmapped joysticks: {self.accept_unmapped_joysticks}")
         self._event_thread.start()
         self._joystick_thread.start()
 
@@ -288,6 +288,12 @@ class JoystickManager:
     def _registerJoystick(self, data):
         joystick = Joystick(manager=self)
         joystick.register(data)
+
+        if joystick.name not in joystick_mappings and not self.accept_unmapped_joysticks:
+            logger.debug(f"Joystick {joystick.name} not found in mapping. Discarding.")
+            del joystick
+            return
+
         self.joysticks[joystick.id] = joystick
         logger.info(f"New Joystick connected. Type: {joystick.name}. ID: {joystick.id}")
 
@@ -490,6 +496,8 @@ class Joystick:
                 if axis in self.mapping['AXES']:
                     axis_num = self.mapping['AXES'][axis]
                     value = self.axis[axis_num]
+            else:
+                logger.debug(f"No mapping found for {self.name} while reading axis {axis}")
 
         return value
 

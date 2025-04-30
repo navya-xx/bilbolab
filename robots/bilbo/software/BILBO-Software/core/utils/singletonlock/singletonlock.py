@@ -4,7 +4,8 @@ import signal
 import sys
 import time
 import tempfile
-from core.utils.exit import ExitHandler
+
+from core.utils.exit import register_exit_callback
 
 
 def resolve_lock_file_path(lock_file="default.lock"):
@@ -62,8 +63,7 @@ class SingletonLock:
         self.timeout = timeout
         self.lock_acquired = False
         self.mode = mode
-        self.exit = ExitHandler()
-        self.exit.register(self._release_lock)
+        register_exit_callback(self._release_lock, priority=0)
         self.script = os.path.basename(sys.argv[0])  # Top-level script
 
     def _release_lock(self, *args, **kwargs):
@@ -83,7 +83,8 @@ class SingletonLock:
                             os.remove(self.lock_file)
                         print(f"Lock released and lock file \"{self.lock_file}\" removed.")
                     else:
-                        print(f"Lock file '{self.lock_file}' is not owned by this process. Skipping removal.")
+                        ...
+                        # print(f"Lock file '{self.lock_file}' is not owned by this process. Skipping removal.")
             except Exception as e:
                 print(f"Error releasing lock: {e}")
             finally:
@@ -135,7 +136,8 @@ class SingletonLock:
                         raise RuntimeError(f"Timeout: Unable to acquire lock within {self.timeout} seconds.")
                     time.sleep(0.1)
                 else:
-                    sys.exit(1)
+                    ...
+                    # sys.exit(1)
         return self
 
     def __del__(self):

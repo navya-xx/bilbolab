@@ -14,8 +14,8 @@ from robot.lowlevel.stm32_general import MAX_STEPS_TRAJECTORY, LOOP_TIME_CONTROL
 from robot.lowlevel.stm32_sequencer import bilbo_sequence_input_t, bilbo_sequence_description_t, BILBO_Sequence_LL
 import robot.lowlevel.stm32_addresses as addresses
 from robot.utilities.bilbo_utilities import BILBO_Utilities
-from core.utils.callbacks import callback_handler, CallbackContainer
-from core.utils.events import event_handler, ConditionEvent
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import event_definition, ConditionEvent
 from core.utils.logging_utils import Logger
 from core.utils.dataclass_utils import from_dict
 from core.utils.data import generate_random_input, generate_time_vector
@@ -78,7 +78,7 @@ class BILBO_Experiment:
 
 
 # === CALLBACKS ========================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_ExperimentCallbacks:
     trajectory_started: CallbackContainer
     trajectory_finished: CallbackContainer
@@ -86,7 +86,7 @@ class BILBO_ExperimentCallbacks:
     trajectory_loaded: CallbackContainer
 
 
-@event_handler
+@event_definition
 class BILBO_ExperimentEvents:
     trajectory_started: ConditionEvent
     trajectory_finished: ConditionEvent

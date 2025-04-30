@@ -4,7 +4,7 @@ import signal
 import sys
 import time
 import tempfile
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 
 
 def resolve_lock_file_path(lock_file="default.lock"):
@@ -61,8 +61,7 @@ class SingletonLock:
         self.timeout = timeout
         self.lock_acquired = False
         self.mode = mode
-        self.exit = ExitHandler()
-        self.exit.register(self._release_lock)
+        register_exit_callback(self._release_lock)
         self.script = os.path.basename(sys.argv[0])  # Top-level script
 
     def _release_lock(self, *args, **kwargs):

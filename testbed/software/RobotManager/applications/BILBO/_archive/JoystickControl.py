@@ -5,7 +5,7 @@ from extensions.cli.src.cli import CommandSet
 from robots.bilbo.manager.bilbo_manager import BILBO_Manager
 from robots.bilbo.robot.utils import TWIPR_GUI
 from robots.bilbo.robot.utils import BILBO_JoystickControl
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import setLoggerLevel
 from core.utils.sound.sound import playSound, SoundSystem
 from core.utils.sound.sound import speak
@@ -51,8 +51,7 @@ class SimpleTwiprJoystickControl:
         self.joystick_control.callbacks.joystick_disconnected.register(self.gui.removeJoystick)
         self.joystick_control.callbacks.joystick_disconnected.register(self._joystickDisconnected_callback)
 
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
         self.soundsystem = SoundSystem(primary_engine='etts')
         self.soundsystem.start()

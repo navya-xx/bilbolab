@@ -1,6 +1,7 @@
 from RPi import GPIO
-from core.utils.exit import ExitHandler
 import atexit
+
+from core.utils.exit import register_exit_callback
 
 INIT = False
 
@@ -34,6 +35,5 @@ def close(*args, **kwargs):
 
 
 init()
-exitHandler = ExitHandler()
-exitHandler.register(close)
+register_exit_callback(close)
 atexit.register(close)

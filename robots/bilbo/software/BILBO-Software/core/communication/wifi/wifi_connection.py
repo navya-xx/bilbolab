@@ -9,7 +9,7 @@ from core.utils import network as network
 from core.communication.protocol import Message
 from core.communication.wifi.tcp.protocols.tcp_base_protocol import TCP_Base_Message, TCP_Base_Protocol
 from core.communication.wifi.tcp.protocols.tcp_json_protocol import TCP_JSON_Protocol, TCP_JSON_Message
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 import core.settings as settings
 from core.utils.logging_utils import Logger, setLoggerLevel
 
@@ -28,7 +28,7 @@ class ServerData:
     uid: list = None
 
 
-@callback_handler
+@callback_definition
 class WIFI_Connection_Callbacks:
     rx: CallbackContainer
     connected: CallbackContainer

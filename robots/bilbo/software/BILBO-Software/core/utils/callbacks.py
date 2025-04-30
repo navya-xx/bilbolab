@@ -1,4 +1,5 @@
 import enum
+import typing
 
 # Constants to indicate whether a parameter is required or optional.
 REQUIRED = True
@@ -180,33 +181,60 @@ class CallbackContainer:
         """
         return iter(self.callbacks)
 
+    def clear_callbacks(self):
+        self.callbacks.clear()
 
-def callback_handler(cls):
-    """
-    Class decorator to automatically instantiate CallbackContainer attributes declared in the class annotations.
 
-    If a field is annotated as a CallbackContainer and its annotation is an instance (i.e. with parameters),
-    that instance is used; otherwise, a default CallbackContainer() is created.
+# def callback_handler(cls):
+#     """
+#     Class decorator to automatically instantiate CallbackContainer attributes declared in the class annotations.
+#
+#     If a field is annotated as a CallbackContainer and its annotation is an instance (i.e. with parameters),
+#     that instance is used; otherwise, a default CallbackContainer() is created.
+#
+#     Args:
+#         cls (type): The class to decorate.
+#
+#     Returns:
+#         The decorated class.
+#     """
+#     original_init = cls.__init__
+#
+#     def new_init(self, *args, **kwargs):
+#         # Iterate over class annotations to set up CallbackContainer attributes.
+#         for name, annotation in cls.__annotations__.items():
+#             # If the annotation is already an instance of CallbackContainer, use it.
+#             if isinstance(annotation, CallbackContainer):
+#                 setattr(self, name, annotation)
+#             # If the annotation is exactly the type CallbackContainer, create a default instance.
+#             elif annotation == CallbackContainer:
+#                 setattr(self, name, CallbackContainer())
+#         if original_init:
+#             original_init(self, *args, **kwargs)
+#
+#     cls.__init__ = new_init
+#     return cls
 
-    Args:
-        cls (type): The class to decorate.
-
-    Returns:
-        The decorated class.
-    """
+def callback_definition(cls):
     original_init = cls.__init__
 
     def new_init(self, *args, **kwargs):
-        # Iterate over class annotations to set up CallbackContainer attributes.
-        for name, annotation in cls.__annotations__.items():
-            # If the annotation is already an instance of CallbackContainer, use it.
-            if isinstance(annotation, CallbackContainer):
-                setattr(self, name, annotation)
-            # If the annotation is exactly the type CallbackContainer, create a default instance.
-            elif annotation == CallbackContainer:
-                setattr(self, name, CallbackContainer())
+        resolved_annotations = typing.get_type_hints(cls)
+        for name, annotation in resolved_annotations.items():
+            if getattr(self, name, None) is None:
+                if isinstance(annotation, type) and issubclass(annotation, CallbackContainer):
+                    setattr(self, name, CallbackContainer())
         if original_init:
             original_init(self, *args, **kwargs)
 
     cls.__init__ = new_init
     return cls
+
+
+class CallbackGroup:
+    def clearAllCallbacks(self):
+        resolved_annotations = typing.get_type_hints(self.__class__)
+        for name, annotation in resolved_annotations.items():
+            attr = getattr(self, name, None)
+            if isinstance(attr, CallbackContainer):
+                attr.clear_callbacks()

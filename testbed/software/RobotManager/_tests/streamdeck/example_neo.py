@@ -96,7 +96,7 @@ def update_key_image(deck, key, state):
 # associated actions when a key is pressed.
 def key_change_callback(deck, key, state):
     # Print new key state
-    print("Deck {} Key {} = {}".format(deck.id(), key, state), flush=True)
+    print("Deck {} Key {} = {}".format(deck.group_id(), key, state), flush=True)
 
     # Don't try to set an image for touch buttons but set a random color
     if key >= deck.key_count():

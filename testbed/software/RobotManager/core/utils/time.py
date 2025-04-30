@@ -5,6 +5,7 @@ import threading
 
 # === OWN PACKAGES =====================================================================================================
 from core.utils.callbacks import callback_definition, CallbackContainer, Callback
+from core.utils.exit import register_exit_callback
 from core.utils.os_utils import getOS
 from threading import Timer as ThreadTimer
 
@@ -231,8 +232,7 @@ class PrecisionTimer:
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._task, daemon=True)
 
-        # self.exit = ExitHandler()
-        # self.exit.register(self.stop)
+        register_exit_callback(self.stop)
 
     def start(self, timeout=None, repeat: bool = None):
         if timeout is not None:

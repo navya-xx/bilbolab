@@ -1,11 +1,14 @@
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.hardware import get_hardware_definition
-from core.utils.events import event_handler, ConditionEvent
+from core.utils.events import event_definition, ConditionEvent
 from core.utils.sound.sound import SoundSystem
 
-@event_handler
+
+@event_definition
 class BILBO_Utilities_Events:
     resume: ConditionEvent
+
+
 
 # ======================================================================================================================
 class BILBO_Utilities:
@@ -15,7 +18,7 @@ class BILBO_Utilities:
         hardware_definition = get_hardware_definition()
 
         if hardware_definition['electronics']['sound']['active']:
-            self.sound_system = SoundSystem(hardware_definition['electronics']['sound']['gain'])
+            self.sound_system = SoundSystem(hardware_definition['electronics']['sound']['gain']*0.2)
         else:
             self.sound_system = None
 
@@ -54,7 +57,7 @@ class BILBO_Utilities:
     # ------------------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
-    def speak(self, message, on_host = True):
+    def speak(self, message, on_host=True):
         # if self.sound_system is None:
         #     if on_host:
         #         self.communication.wifi.sendEvent(event='speak',

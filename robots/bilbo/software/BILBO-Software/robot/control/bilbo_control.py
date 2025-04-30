@@ -1,13 +1,14 @@
 from robot.communication.serial.bilbo_serial_messages import BILBO_Control_Event_Message
+from robot.control.position_control import BILBO_PositionControl
 # Importing low-level sample class from STM32 interface
 from robot.lowlevel.stm32_sample import BILBO_LL_Sample
 
 # === OWN PACKAGES =====================================================================================================
-from core.utils.callbacks import callback_handler, CallbackContainer
+from core.utils.callbacks import callback_definition, CallbackContainer
 from robot.communication.bilbo_communication import BILBO_Communication
 import robot.lowlevel.stm32_addresses as addresses
 from robot.lowlevel.stm32_control import *
-from core.utils.events import ConditionEvent, event_handler
+from core.utils.events import ConditionEvent, event_definition
 from core.utils.logging_utils import Logger
 from robot.control.definitions import *
 from core.utils.data import limit, are_lists_approximately_equal
@@ -20,7 +21,7 @@ logger.setLevel('INFO')
 
 
 # === BILBO Control Callbacks ==========================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Control_Callbacks:
     """
     Callback container for control-related events.
@@ -38,12 +39,12 @@ class BILBO_Control_Callbacks:
     on_update: CallbackContainer
 
 
-@event_handler
+@event_definition
 class BILBO_Control_Events:
     mode_change: ConditionEvent = ConditionEvent(flags=[('mode', BILBO_Control_Mode)])
     configuration_change: ConditionEvent
     error: ConditionEvent
-    status_change:  ConditionEvent = ConditionEvent(flags=[('status', str)])
+    status_change: ConditionEvent = ConditionEvent(flags=[('status', str)])
 
 
 # === BILBO Control ====================================================================================================
@@ -66,6 +67,7 @@ class BILBO_Control:
 
     # Control configuration (loaded from control_config)
     config: control_config.ControlConfig
+
 
     # External and manual control inputs
     external_input: BILBO_Control_Input
@@ -114,11 +116,14 @@ class BILBO_Control:
 
         self.events = BILBO_Control_Events()
 
+
+        self.position_control = BILBO_PositionControl()
+
         # Register commands to the WI-FI module for remote control
         self._comm.wifi.addCommand(identifier='setControlMode',
                                    callback=self.setMode,
                                    arguments=['mode'],
-                                   description='Sets the control mode')
+                                   description='Sets the control mode',)
 
         self._comm.wifi.addCommand(identifier='setNormalizedBalancingInput',
                                    callback=self.setNormalizedBalancingInput,
@@ -140,20 +145,32 @@ class BILBO_Control:
                                    arguments=['P', 'I', 'D'],
                                    description='Sets the PID Control Values for the Turn Velocity')
 
-
         self._comm.wifi.addCommand(identifier='enableTIC',
                                    callback=self.enableTIC,
                                    arguments=['enable'],
                                    description='Enabled Theta Integral Control')
 
 
+        self._comm.wifi.addCommand(identifier='setPositionControlWaypoints',
+                                   callback=self.setPositionControlWaypoints,
+                                   arguments=['waypoints'],
+                                   description='Sets the Position Control Waypoints')
+
         self._comm.serial.callbacks.event.register(self._ll_control_event_callback,
-                                                           parameters={'messages': [BILBO_Control_Event_Message]})
+                                                   parameters={'messages': [BILBO_Control_Event_Message]})
 
         # Optionally, a dedicated thread could be started for continuous control updates
         # self._thread = threading.Thread(target=self._threadFunction)
 
         self._lowlevel_control_sample = None  # Type: Ignore
+
+
+
+
+    def setPositionControlWaypoints(self, waypoints):
+        ...
+
+
 
     # === METHODS ======================================================================================================
     def init(self):
@@ -197,6 +214,9 @@ class BILBO_Control:
 
         # For now, manual input is the only method, so we copy the external input
         self.input = external_input
+
+        if self.mode == BILBO_Control_Mode.POSITION:
+            self.input = self.position_control.update(vnjfdnvjkdfnkv)
 
         # Set the control input in the low-level hardware
         self._setInput(self.input)
@@ -384,7 +404,6 @@ class BILBO_Control:
             self.external_input.velocity.forward = forward_speed_scaled
             self.external_input.velocity.turn = turn_speed_scaled
         else:
-
 
             # If not in velocity mode, ignore the input
             ...
@@ -604,7 +623,7 @@ class BILBO_Control:
 
     # ------------------------------------------------------------------------------------------------------------------
     def _ll_configuration_change_callback(self, configuration: dict):
-        logger.debug(f"Received configuration change: {configuration}")
+        logger.info(f"Received configuration change: {configuration}")
 
         self.callbacks.configuration_change.call(configuration)
         self.events.configuration_change.set(resource=configuration)
@@ -614,7 +633,6 @@ class BILBO_Control:
                                       'event': 'configuration_change',
                                       'configuration': configuration,
                                   })
-
 
     # ------------------------------------------------------------------------------------------------------------------
     def _setControlConfig(self, config: control_config.ControlConfig, verify: bool = False):
@@ -631,10 +649,10 @@ class BILBO_Control:
             vic_ki=config.statefeedback.vic.Ki,
             vic_max_error=config.statefeedback.vic.max_error,
             vic_v_limit=config.statefeedback.vic.velocity_threshold,
-            tic_enabled = config.statefeedback.tic.enabled,
-            tic_ki = config.statefeedback.tic.Ki,
-            tic_max_error = config.statefeedback.tic.max_error,
-            tic_theta_limit = config.statefeedback.tic.theta_threshold
+            tic_enabled=config.statefeedback.tic.enabled,
+            tic_ki=config.statefeedback.tic.Ki,
+            tic_max_error=config.statefeedback.tic.max_error,
+            tic_theta_limit=config.statefeedback.tic.theta_threshold
         )
 
         success = self._comm.serial.executeFunction(
@@ -983,10 +1001,12 @@ class BILBO_Control:
             self._setBalancingInput_LL(input.balancing.u_left, input.balancing.u_right)
         elif self.mode == BILBO_Control_Mode.VELOCITY:
             self._setSpeedInput_LL(input.velocity.forward, input.velocity.turn)
+        elif self.mode == BILBO_Control_Mode.POSITION:
+            self._setSpeedInput_LL(input.velocity.forward, input.velocity.turn)
 
     # ------------------------------------------------------------------------------------------------------------------
     def _ll_control_event_callback(self, message: BILBO_Control_Event_Message, *args, **kwargs):
-        event =  BILBO_Control_Event_Type(message.data['event'])
+        event = BILBO_Control_Event_Type(message.data['event'])
 
         if event == BILBO_Control_Event_Type.ERROR:
             logger.error(f"Error in the LL Control Module: {message.data['error']}")

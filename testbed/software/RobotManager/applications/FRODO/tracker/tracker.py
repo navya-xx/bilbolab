@@ -53,7 +53,7 @@ class Tracker:
         # self.event_listener_sample = EventListener(self.optitrack.events.sample,
         #                                            callback=self._optitrack_new_sample_callback)
 
-        self.optitrack.events.sample.on(self._optitrack_new_sample_callback)
+        self.optitrack.events.sample.on(self._optitrack_new_sample_callback, input_resource=True)
 
         # Register callback for description reception
         self.optitrack.callbacks.description_received.register(self._optitrack_description_callback)

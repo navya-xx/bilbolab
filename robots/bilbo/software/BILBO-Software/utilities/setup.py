@@ -1,6 +1,8 @@
 import os
 import sys
 
+from hardware.shields.bilbo_shield_rev2 import generate_shield_config
+
 # Get the directory of the current script
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -125,6 +127,9 @@ def setup(board_rev=None, hardware_config=None, robot_id=None):
 
     # Compile stm32 flash
     compileSTM32Flash()
+
+    # Generate shield configs
+    generate_shield_config()
 
     print(f"Setup Complete: ID: {robot_id}, Size: {hardware_config}, Board Rev: {board_rev}")
 

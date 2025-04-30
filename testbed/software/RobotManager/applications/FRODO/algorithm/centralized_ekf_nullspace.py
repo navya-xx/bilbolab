@@ -258,7 +258,7 @@ class CentralizedLocationAlgorithm:
             print(f"Step: {self.step}")
             for agent in self.agents.values():
                 print(
-                    f"{agent.id}: \t x: {agent.state[0]:.1f} \t y: {agent.state[1]:.1f} \t psi: {agent.state[2]:.1f} \t Cov: {np.linalg.norm(agent.state_covariance, 'fro'):.1f}")
+                    f"{agent.group_id}: \t x: {agent.state[0]:.1f} \t y: {agent.state[1]:.1f} \t psi: {agent.state[2]:.1f} \t Cov: {np.linalg.norm(agent.state_covariance, 'fro'):.1f}")
 
     # ------------------------------------------------------------------------------------------------------------------
     def getAgentByIndex(self, index: int) -> (VisionAgent):
@@ -270,7 +270,7 @@ class CentralizedLocationAlgorithm:
     # ------------------------------------------------------------------------------------------------------------------
     def getAgentIndex(self, id: str) -> (int, None):
         for i, agent in enumerate(self.agents.values()):
-            if agent.id == id:
+            if agent.group_id == id:
                 return i
 # # ------------------------------------------------------------------------------
 # # Example Usage (Can be removed or adapted)

@@ -1,15 +1,16 @@
 import ctypes
 import time
 
+from core.utils.exit import register_exit_callback
 # === OWN PACKAGES =====================================================================================================
 from hardware.control_board import RobotControl_Board
 from hardware.stm32.stm32 import resetSTM32
 from robot.experiment.bilbo_experiment import BILBO_ExperimentHandler
+from robot.interfaces.bilbo_interfaces import BILBO_Interfaces
 from robot.utilities.bilbo_utilities import BILBO_Utilities
 from robot.utilities.id import readID
-from core.utils.callbacks import callback_handler, CallbackContainer
-from core.utils.events import EventListener, ConditionEvent, event_handler
-from core.utils.exit import ExitHandler, stop_program
+from core.utils.callbacks import callback_definition, CallbackContainer
+from core.utils.events import EventListener, ConditionEvent, event_definition
 from core.utils.singletonlock.singletonlock import SingletonLock, terminate
 from robot.communication.bilbo_communication import BILBO_Communication
 from robot.control.definitions import BILBO_Control_Mode
@@ -31,13 +32,13 @@ setLoggerLevel('Sound', 'ERROR')
 
 
 # === Callbacks ========================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Callbacks:
     update: CallbackContainer
 
 
 # === Events ===========================================================================================================
-@event_handler
+@event_definition
 class BILBO_Events:
     update: ConditionEvent
 
@@ -60,7 +61,6 @@ class BILBO:
 
     supervisor: TWIPR_Supervisor
     lock: SingletonLock
-    exit: ExitHandler
 
     loop_time: float
     tick: int = 0
@@ -123,6 +123,8 @@ class BILBO:
                                      experiment_handler=self.experiment_handler,
                                      general_sample_collect_function=self._getSample)
 
+        self.interfaces = BILBO_Interfaces(communication=self.communication, control=self.control)
+
         # Test Command
         self.communication.wifi.addCommand(identifier='test',
                                            callback=self.test,
@@ -132,8 +134,7 @@ class BILBO:
         self.events = BILBO_Events()
         self.callbacks = BILBO_Callbacks()
         self._eventListener = EventListener(event=self.communication.events.rx_stm32_sample, callback=self.update)
-        self.exit = ExitHandler()
-        self.exit.register(self._shutdown)
+        register_exit_callback(self._shutdown, priority=-1)
 
     # === METHODS ======================================================================================================
     def init(self):
@@ -170,7 +171,7 @@ class BILBO:
         time.sleep(0.05)
         if not self._resetLowLevel():
             self.logger.error("Failed to reset lowlevel firmware")
-            stop_program()
+            raise Exception("Failed to reset lowlevel firmware")
 
         self.logger.info(f"Start {self.id}")
         self.utilities.playTone('notification')
@@ -178,6 +179,7 @@ class BILBO:
 
         self.communication.startSampleListener()
         self._eventListener.start()
+        self.interfaces.start()
         # self.board.setRGBLEDExtern([0, 0, 0])
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -241,9 +243,6 @@ class BILBO:
         time.sleep(1)
         self.board.setRGBLEDExtern([2, 2, 2])
         self.lock.__exit__(None, None, None)
-
-        # Shutdown all modules
-        # self.communication.close()
 
     # ------------------------------------------------------------------------------------------------------------------
     def _checkFirmwareRevision(self) -> bool:

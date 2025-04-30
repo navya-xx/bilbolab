@@ -1,5 +1,16 @@
 import logging
+import os
+import sys
 import time
+
+# Get the directory of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Go up one or more levels as needed
+top_level_module = os.path.abspath(os.path.join(current_dir, '..', '..'))  # adjust as needed
+
+if top_level_module not in sys.path:
+    sys.path.insert(0, top_level_module)
 
 from applications.BILBO.experiments.bilbo_experiments import BILBO_ExperimentHandler
 from applications.BILBO.tracker.bilbo_tracker import BILBO_Tracker
@@ -8,7 +19,7 @@ from extensions.cli.src.cli import CommandSet
 from robots.bilbo.manager.bilbo_joystick_control import BILBO_JoystickControl
 from robots.bilbo.manager.bilbo_manager import BILBO_Manager
 # from robots.bilbo.robot.utils import BILBO_JoystickControl
-from core.utils.exit import ExitHandler
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import setLoggerLevel, Logger
 from core.utils.loop import infinite_loop
 from core.utils.sound.sound import speak, SoundSystem
@@ -51,8 +62,7 @@ class BILBO_Application:
         self.soundsystem.start()
 
         # Exit Handling
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
 
     # ------------------------------------------------------------------------------------------------------------------
     def init(self):
@@ -79,9 +89,7 @@ class BILBO_Application:
         global ENABLE_SPEECH_OUTPUT
         ENABLE_SPEECH_OUTPUT = False
 
-    # ==================================================================================================================
 
-    # ------------------------------------------------------------------------------------------------------------------
     # ==================================================================================================================
     def _newRobot_callback(self, bilbo, *args, **kwargs):
         if ENABLE_SPEECH_OUTPUT:
@@ -91,8 +99,6 @@ class BILBO_Application:
     def _robotDisconnected_callback(self, bilbo, *args, **kwargs):
         if ENABLE_SPEECH_OUTPUT:
             speak(f"Robot {bilbo.id} disconnected")
-
-    # ------------------------------------------------------------------------------------------------------------------
 
 
 # ======================================================================================================================

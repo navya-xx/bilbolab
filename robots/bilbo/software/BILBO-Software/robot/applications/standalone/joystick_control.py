@@ -1,8 +1,9 @@
 import threading
 import time
 
-from core.utils.exit import ExitHandler
 from core.utils.joystick.joystick import JoystickManager, Joystick
+
+from core.utils.exit import register_exit_callback
 from core.utils.logging_utils import Logger
 from robot.control.definitions import BILBO_Control_Mode
 from robot.bilbo import BILBO
@@ -31,8 +32,7 @@ class StandaloneJoystickControl:
         self.joystick_manager.callbacks.joystick_disconnected.register(self._joystickDisconnected_callback)
 
         self.joystick = None
-        self.exit = ExitHandler()
-        self.exit.register(self.close)
+        register_exit_callback(self.close)
         self._thread = threading.Thread(target=self._task, daemon=True)
 
     # ------------------------------------------------------------------------------------------------------------------

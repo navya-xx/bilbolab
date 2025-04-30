@@ -3,11 +3,11 @@ import time
 from core.communication.wifi.data_link import CommandArgument
 # === OWN PACKAGES =====================================================================================================
 from core.communication.wifi.wifi_interface import WIFI_Interface
-from core.utils.callbacks import Callback, callback_handler, CallbackContainer
+from core.utils.callbacks import Callback, callback_definition, CallbackContainer
 
 
 # ======================================================================================================================
-@callback_handler
+@callback_definition
 class BILBO_Wifi_Callbacks:
     connected: CallbackContainer
     disconnected: CallbackContainer

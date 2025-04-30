@@ -166,7 +166,11 @@ class SoundSystem:
         self.primary_engine = primary_engine
         self.fallback_engine = fallback_engine
 
-        self.has_internet = check_internet()
+        self.has_internet = False
+        self.check_internet()
+
+        self.periodic_internet_check_thread = threading.Thread(target=self._periodic_internet_check, daemon=True)
+
         self.add_robot_filter = add_robot_filter
 
         # We will create playback_queue in the correct event loop context.
@@ -183,7 +187,11 @@ class SoundSystem:
             logger.warning("Overriding active sound system")
         active_sound_system = self
 
+    def check_internet(self):
+        self.has_internet = check_internet()
+
     def start(self):
+        self.periodic_internet_check_thread.start()
         # Start the background event loop thread.
         self.loop_thread.start()
         # Initialize async components (playback_queue and worker) in the new event loop.
@@ -192,6 +200,14 @@ class SoundSystem:
     def _start_loop(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
+
+    def _periodic_internet_check(self):
+        while self.running:
+            try:
+                self.check_internet()
+            except Exception as e:
+                logger.error(f"Error checking internet: {e}")
+            time.sleep(5)  # Wait for 5 seconds before checking again
 
     async def _init_async_components(self):
         # Create the playback queue in the context of this event loop.
@@ -348,6 +364,9 @@ class SoundSystem:
         pygame.mixer.music.stop()
         self.loop.call_soon_threadsafe(self.loop.stop)
         self.loop_thread.join()
+
+        if self.periodic_internet_check_thread.is_alive():
+            self.periodic_internet_check_thread.join()
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ from core.communication.serial.core.serial_protocol import UART_Message
 from core.communication.serial.core.serial_connection import SerialConnection
 from core.utils.ctypes_utils import is_valid_ctype, ctype_to_value, value_to_ctype, bytes_to_ctype, ctype_to_bytes, \
     bytes_to_value, value_to_bytes
-from core.utils.callbacks import callback_handler, CallbackContainer, Callback
-from core.utils.events import event_handler, ConditionEvent
+from core.utils.callbacks import callback_definition, CallbackContainer, Callback
+from core.utils.events import event_definition, ConditionEvent
 from core.utils.logging_utils import Logger
 import core
 
@@ -71,7 +71,7 @@ class ReadRequest:
 
 
 # === CALLBACKS ========================================================================================================
-@callback_handler
+@callback_definition
 class SerialInterface_Callbacks:
     rx_all: CallbackContainer
     event_all: CallbackContainer
@@ -84,7 +84,7 @@ class SerialInterface_Callbacks:
 
 
 # === EVENTS ===========================================================================================================
-@event_handler
+@event_definition
 class SerialInterface_Events:
     rx: ConditionEvent
     event: ConditionEvent
